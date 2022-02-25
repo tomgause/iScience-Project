@@ -24,10 +24,10 @@ tom.data <- data %>%
   filter(forecast_target == 198301)
 print(length(tom.data$forecast_target))
 
-tom.data %>%
-  if
-  mutate(date = as_date(c(forecast_target, "01"), format="%Y%m%d"))
-View(tom.data %>% head(100))
+data %>%
+  head(10) %>%
+  mutate(time = as_datetime(forecast_timestamp, format = "%Y%m%d%H")) %>%
+  pull(time)
 
 #adjust forecast_target to get observed averages for different months
 tom.data %>%
@@ -40,8 +40,8 @@ tom.data %>%
                  color = meanTemp))
 
 #find forecast means
-tom.data %>%
-  filter(forecast_target == 198301) %>%
+x <- data %>%
+  filter(forecast_target == 198401) %>%
   group_by(x, y) %>%
   summarize(mean_obs_Temp = mean(obs_tmp_k),
     mean_pred_Temp = mean(fcst_tmp_k),
@@ -49,7 +49,9 @@ tom.data %>%
   ggplot() +
   geom_point(aes(x = x,
                  y = y,
-                 color = mse_Temp))
+                 color = mean_obs_Temp))
+
+ggsave("pred_1983.png", plot = x)
 
 corrected.data <- NULL
 corrected.data <- as.data.frame(corrected.data)
