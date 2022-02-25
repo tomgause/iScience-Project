@@ -24,14 +24,20 @@ tom.data <- data %>%
   filter(forecast_target == 198301)
 print(length(tom.data$forecast_target))
 
+<<<<<<< HEAD
+#tom.data %>%
+ # mutate(date = as_date(c(forecast_target, "01"), format="%Y%m%d"))
+View(tom.data %>% head(100))
+=======
 data %>%
   head(10) %>%
   mutate(time = as_datetime(forecast_timestamp, format = "%Y%m%d%H")) %>%
   pull(time)
+>>>>>>> 25bb891a3e98e201b5c4d0e43f196fe6b637d59d
 
 #adjust forecast_target to get observed averages for different months
 tom.data %>%
-  filter(forecast_target == 200801) %>%
+  #filter(forecast_target == 200801) %>%
   group_by(x, y) %>%
   summarize(meanTemp = mean(obs_tmp_k)) %>%
   ggplot() +
@@ -72,5 +78,61 @@ biasCorrect(
   #method
   scaling
 )
+
+##Acadia Hegedus
+##2/24/22
+
+#Data Exploration
+acadia.data <- data[sample(nrow(data), 5000),] #random sample without replacement
+
+#Creating our target variable
+acadia.data <- acadia.data %>%
+  mutate(error_temp = obs_tmp_k-fcst_tmp_k)%>%
+  mutate(error_precip = obs_pr_m_day -fcst_pr_m_day)
+
+options(scipen = 1000)
+hist(acadia.data$error_precip)
+hist(acadia.data$error_temp)
+
+print(mean(acadia.data$errorsq_precip))
+print(mean(acadia.data$errorsq_temp)) 
+
+#CFSv2 tends to overpredict both precipitation and temperature
+
+#Exploring a single pixel
+data%>%
+  filter(x == -103.50, y == 29.25)%>%
+  ggplot(mapping = aes(x = forecast_target, y = fcst_tmp_k)) +
+  geom_point()
+
+#look at mean of 24 forecasts
+mean.one.pixel.data <- data%>%
+  filter(x == -103.50, y == 29.25)%>%
+  group_by(forecast_target)%>%
+  mutate(mean_temp = mean(fcst_tmp_k))%>%
+  mutate(mean_precip = mean(fcst_pr_m_day))
+
+#graph mean temp over time for one pixel
+mean.one.pixel.data%>%
+  ggplot(mapping = aes(x = forecast_target, y = mean_temp)) +
+  geom_point()
+
+#graph mean precip over time for one pixel
+mean.one.pixel.data%>%
+  ggplot(mapping = aes(x = forecast_target, y = mean_precip)) +
+  geom_point()
+
+data%>%
+  filter(x == -103.50, y == 29.25, forecast_target == 200501)%>%
+  group_by(forecast_timestamp)
+#why am I only seeing 24 predictions at a single pixel/forecast_target?
+#I thought we would be seeing 28?
+
+#checking for NAs
+sum(is.na(data))
+#isnt it fabulous to have no missing data?
+
+data%>%
+  filter(x == -103.50, y == 29.25, forecast_target == 200501)
 
 
