@@ -4,12 +4,21 @@
 
 library(tidyverse)
 library(lubridate)
-library(sf)
+library(dplyr)
 library(hyfo)
 filename <- file.choose()
 data <- readRDS(filename)
 
 View(data %>% head(100))
+
+#Dallas: 32.8, -96.8
+data %>%
+  filter(x == -97, 
+         y == 33) %>%
+  summarize(meanTemp = mean(obs_tmp_k),
+            sd = sd(obs_tmp_k),
+            min = min(obs_tmp_k),
+            max = max(obs_tmp_k))
 
 #get data summary
 data %>%
@@ -24,16 +33,14 @@ tom.data <- data %>%
   filter(forecast_target == 198301)
 print(length(tom.data$forecast_target))
 
-<<<<<<< HEAD
 #tom.data %>%
  # mutate(date = as_date(c(forecast_target, "01"), format="%Y%m%d"))
 View(tom.data %>% head(100))
-=======
+
 data %>%
   head(10) %>%
   mutate(time = as_datetime(forecast_timestamp, format = "%Y%m%d%H")) %>%
   pull(time)
->>>>>>> 25bb891a3e98e201b5c4d0e43f196fe6b637d59d
 
 #adjust forecast_target to get observed averages for different months
 tom.data %>%
