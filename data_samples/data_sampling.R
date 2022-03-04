@@ -1,7 +1,5 @@
 library(tidyverse)
 
-
-
 df <- list.files(path = "/Users/tomgause/Desktop/iScience_data/hindcasts_usa/",
                       pattern = ".rds",
                       full.names = TRUE)
