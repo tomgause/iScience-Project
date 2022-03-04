@@ -1,3 +1,13 @@
+---
+title: "Katelyn_Code"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
 library(tidyverse)
 library(lubridate)
 
@@ -51,3 +61,10 @@ time_series_map <- function(location){
 time_series_map(239331) 
 
 ##test
+
+hindcast_data %>% 
+  filter(x==-95,y == 29.76)
+
+
+```
+
