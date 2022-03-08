@@ -1,10 +1,24 @@
+### make_data.R
+# Tom Gause
+# last edited 3/7/22
+
+system("mkdir data;
+        curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.tar;
+        tar -xvf hindcasts_usa.tar ", intern = TRUE)
+
+
+if (!require("Dict")) { install.packages("Dict") }
+if (!require("zoo")) { install.packages("zoo") }
+if (!require("elevatr")) { install.packages("elevatr") }
+library(Dict)
 library(tidyverse)
 library(lubridate)
 library(zoo)
-library(Dict)
 library(dplyr)
+library(sf)
+library(elevatr)
 
-
+#change path to /data/
 df <- list.files(path = "/Users/tomgause/Desktop/iScience_data/hindcasts_usa/",
                  pattern = ".rds",
                  full.names = TRUE)
@@ -50,5 +64,15 @@ hindcast_all <- hindcast_all %>%
          lag10 = lag(lag1, 3036096 * 9),
          lag11 = lag(lag1, 3036096 * 10))
 
-view(head(hindcast_all, 100))
-view(tail(hindcast_all, 100))
+#view(head(hindcast_all, 100))
+#view(tail(hindcast_all, 100))
+
+saveRDS(hindcast_all, file = "hindcast_all.rds")
+
+## Not run: 
+mt_wash <- data.frame(x = -71.3036, y = 44.2700)
+mt_mans <- data.frame(x = -72.8145, y = 44.5438)
+mts <- rbind(mt_wash,mt_mans)
+ll_prj <- "EPSG:4326"
+get_elev_point(locations = mt_wash, prj = ll_prj)
+
