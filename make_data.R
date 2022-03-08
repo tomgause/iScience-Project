@@ -8,15 +8,16 @@ system("mkdir data;
 
 
 if (!require("Dict")) { install.packages("Dict") }
-if (!require("zoo")) { install.packages("zoo") }
-if (!require("elevatr")) { install.packages("elevatr") }
 library(Dict)
 library(tidyverse)
 library(lubridate)
 library(zoo)
 library(dplyr)
 library(sf)
-library(elevatr)
+library(raster)
+library(rgdal)
+library(terra)
+
 
 #change path to /data/
 df <- list.files(path = "/Users/tomgause/Desktop/iScience_data/hindcasts_usa/",
@@ -67,12 +68,28 @@ hindcast_all <- hindcast_all %>%
 #view(head(hindcast_all, 100))
 #view(tail(hindcast_all, 100))
 
-saveRDS(hindcast_all, file = "hindcast_all.rds")
 
-## Not run: 
-mt_wash <- data.frame(x = -71.3036, y = 44.2700)
-mt_mans <- data.frame(x = -72.8145, y = 44.5438)
-mts <- rbind(mt_wash,mt_mans)
-ll_prj <- "EPSG:4326"
-get_elev_point(locations = mt_wash, prj = ll_prj)
+#read elevation data
+files <- dir("data/", recursive=TRUE, full.names=TRUE, pattern=".tif$")
+dfr <- do.call(rbind, lapply(files, raster::values))
+
+y = readGDAL(system.file("gmted2010_ERA5_quarter_degree.tif", package = "rgdal")[1])
+head(y@data)
+
+# Using raster to create stack from individual bands and coerce to SpatialGridDataFrame
+y <- stack( raster(system.file("pictures/Rlogo.jpg", package = "rgdal")[1], band=1),
+            raster(system.file("pictures/Rlogo.jpg", package = "rgdal")[1], band=2),
+            raster(system.file("pictures/Rlogo.jpg", package = "rgdal")[1], band=3))
+class(y)
+
+y <- as(y, "SpatialGridDataFrame")
+class(y)
+
+# do something to the data and write raster to disk  
+y@data <- y@data * 0.01  
+writeGDAL(y, "corrected.tif", drivername="GTiff", type="Float32") 
+
+saveRDS(hindcast_all, file = "/data/hindcast_all.rds")
+
+
 
