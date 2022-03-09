@@ -2,9 +2,14 @@
 #2/18/22
 #https://tensorflow.rstudio.com/tutorials/beginners/
 
+install.packages("tensorflow")
 library(tensorflow)
-library(keras)
+install_tensorflow()
 
+library(tensorflow)
+tf$constant("Hellow Tensorflow")
+
+library(keras)
 mnist <- dataset_mnist()
 mnist$train$x <- mnist$train$x/255
 mnist$test$x <- mnist$test$x/255
@@ -37,6 +42,7 @@ head(predictions, 2)
 model %>%
   evaluate(mnist$test$x, mnist$test$y, verbose = 0)
 
-#save_model_tf(object = model, filepath = "model")
-#reloaded_model <- load_model_tf("model")
-#all.equal(predict(model, mnist$test$x), predict(reloaded_model, mnist$test$x))
+save_model_tf(object = model, filepath = "model")
+
+reloaded_model <- load_model_tf("model")
+all.equal(predict(model, mnist$test$x), predict(reloaded_model, mnist$test$x))
