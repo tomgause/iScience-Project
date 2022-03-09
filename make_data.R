@@ -2,10 +2,11 @@
 # Tom Gause
 # last edited 3/9/22
 
-system("curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.tar;
+system("cd data;
+        curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.tar;
         tar -xvf hindcasts_usa.tar;
-        rm hindcasts_usa.tar
-       ", intern = TRUE)
+        rm hindcasts_usa.tar",
+       intern = TRUE)
 
 if (!require("Dict")) { install.packages("Dict") }
 library(Dict)
@@ -28,13 +29,14 @@ df <- list.files(path = "/Users/tomgause/Desktop/iScience_data/hindcasts_usa/",
 hindcast_all <- NULL
 N <- length(df)
 for(i in 1:N) {
+  i <- 2
   sprintf("Reading %d/%d", i, N)
-  hindcast_all <- rbind(hindcast_all, readRDS(df[2]) %>%
+  hindcast_all <- rbind(hindcast_all, readRDS(df[i]) %>%
     mutate(lag1 = substring(forecast_timestamp, 1, 6)))
 }
 
 #temporal ordering by forecast timestamp (lag1 for more efficiency)
-hindcast_all <- hindcast_all[order(hindcast_all$lag1,)]
+hindcast_all <- hindcast_all[order(hindcast_all$forecast_timestamp),]
 
 #make dictionary from %Y%m to temperature (for efficiency)
 map_tt <- NULL
@@ -64,11 +66,12 @@ hindcast_all <- hindcast_all %>%
          lag8 = lag(lag1, 3036096 * 7),
          lag9 = lag(lag1, 3036096 * 8),
          lag10 = lag(lag1, 3036096 * 9),
-         lag11 = lag(lag1, 3036096 * 10))
+         lag11 = lag(lag1, 3036096 * 10),
+         lag12 = lag(lag1, 3036096 * 11))
 
 elev_cells <- NULL
 #check for elevation data and generate if it doesn't exist
-if (!file.exists("/data/elev_cells.rds")) {
+if (!file.exists("./data/elev_cells.rds")) {
   #there's definitely a better way but this is functional
   #TODO: ask in next meeting "how to do this in a not dumb way..."
   cells <- data.frame(
@@ -101,6 +104,11 @@ hindcast_all <- hindcast_all %>%
   # geom_point(aes(x = x,
   #                y = y,
   #                color = Elev))
+
+hindcast_all <- hindcast_all %>%
+  mutate(forecast_target <- as_date(paste0(forecast_target, "01"),
+                                    format = "%Y%m%d"),
+         fcst_timestamp <- as_datetime
 
 #and save!
 saveRDS(hindcast_all, file = "./data/hindcast_all.rds")
