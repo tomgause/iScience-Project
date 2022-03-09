@@ -50,7 +50,6 @@ hindcast_data_subset <- hindcast_data_subset %>%
 
 
 Variables to use are: 
-- forecast_target
 - x
 - y
 - target_month
