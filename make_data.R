@@ -29,7 +29,7 @@ df <- list.files(path = "/Users/tomgause/Desktop/iScience_data/hindcasts_usa/",
 hindcast_all <- NULL
 N <- length(df)
 for(i in 1:N) {
-  i <- 2
+  i <- 108
   sprintf("Reading %d/%d", i, N)
   hindcast_all <- rbind(hindcast_all, readRDS(df[i]) %>%
     mutate(lag1 = substring(forecast_timestamp, 1, 6)))
@@ -105,10 +105,15 @@ hindcast_all <- hindcast_all %>%
   #                y = y,
   #                color = Elev))
 
+function(forecast)
+
 hindcast_all <- hindcast_all %>%
-  mutate(forecast_target <- as_date(paste0(forecast_target, "01"),
-                                    format = "%Y%m%d"),
-         fcst_timestamp <- as_datetime
+  mutate(forecast_target = as.POSIXct(paste0(forecast_target, "01"),
+                                    format = "%Y%m%d",
+                                    tz = "EST"),
+         forecast_timestamp = as.POSIXct(forecast_timestamp,
+                                    format = "%Y%m%d%H",
+                                    tz = "EST"))
 
 #and save!
 saveRDS(hindcast_all, file = "./data/hindcast_all.rds")

@@ -27,7 +27,6 @@ library(rattle)
 library(ipred)
 library(randomForest)
 library(caret)
-library(spotifyr)
 library(dendextend)
 ```
 
