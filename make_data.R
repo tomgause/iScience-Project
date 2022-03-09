@@ -6,7 +6,6 @@ system("mkdir data;
         curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.tar;
         tar -xvf hindcasts_usa.tar ", intern = TRUE)
 
-
 if (!require("Dict")) { install.packages("Dict") }
 if (!require("rgbif")) { install.packages("rgbif") }
 library(Dict)
@@ -21,7 +20,6 @@ library(terra)
 library(proj4)
 library(elevatr)
 library(rgbif)
-
 
 #change path to /data/
 df <- list.files(path = "/Users/tomgause/Desktop/iScience_data/hindcasts_usa/",
