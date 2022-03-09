@@ -8,6 +8,7 @@ system("mkdir data;
 
 
 if (!require("Dict")) { install.packages("Dict") }
+if (!require("rgbif")) { install.packages("rgbif") }
 library(Dict)
 library(tidyverse)
 library(lubridate)
@@ -17,6 +18,9 @@ library(sf)
 library(raster)
 library(rgdal)
 library(terra)
+library(proj4)
+library(elevatr)
+library(rgbif)
 
 
 #change path to /data/
@@ -45,12 +49,12 @@ map_tt <- dict(
 )
 #generate mappings
 for (x in unique(hindcast_all$lag1)) {
-  map_tt["198301"] <- hindcast_all[match("198301", hindcast_all$forecast_target, nomatch=-1),]$obs_tmp_k
+  map_tt[x] <- hindcast_all[match(x, hindcast_all$forecast_target, nomatch=-1),]$obs_tmp_k
 }
 
 #make the lags with dplyr. Turns out forecast_timestamp was useful after all!
 hindcast_all <- hindcast_all %>%
-  mutate(lag1 = c(rep(map_tt["198301"], nrow(hindcast_all))),
+  mutate(lag1 = map_tt[lag1],
          #for each extra lag, we need to shift back 1 month.
          #monthly, there are unique 14056 cells, 24 forecasts, and 9 lead times,
          #so each lag needs to be 14056 * 24 * 9 = 3036096 rows
@@ -65,31 +69,34 @@ hindcast_all <- hindcast_all %>%
          lag10 = lag(lag1, 3036096 * 9),
          lag11 = lag(lag1, 3036096 * 10))
 
-#view(head(hindcast_all, 100))
-#view(tail(hindcast_all, 100))
+elev_cells <- NULL
+#check for elevation data and generate if it doesn't exist
+if (!file.exists("/data/elev_cells.rds")) {
+  #there's definitely a better way but this is functional
+  #TODO: ask in next meeting "how to do this in a not dumb way..."
+  cells <- data.frame(
+    x <- hindcast_all$x[1:14056],
+    y <- hindcast_all$y[1:14056])
+  
+  elev <- rast('./data/gmted2010_ERA5_quarter_degree.tif')
+  elev_df <- as.data.frame(elev, xy=TRUE)
+  
+  for (i in 1:14056) {
+    is_cell <- (elev_df$x == cells$x[i]) & (elev_df$y == cells$y[i])
+    elev_cells[i] <- elev_df$gmted2010_ERA5_quarter_degree[is_cell]
+  }
 
+  saveRDS(elev_cells, file = "./data/elev_cells.rds")
+} else {
+  elev_cells <- readRDS("./data/elev_cells.rds")
+}
 
-#read elevation data
-files <- dir("data/", recursive=TRUE, full.names=TRUE, pattern=".tif$")
-dfr <- do.call(rbind, lapply(files, raster::values))
+#now we append our new column...
+hindcast_all <- hindcast_all %>%
+  mutate(elev = c(rep(elev_cells, nrow(hindcast_all)/14056)))
 
-y = readGDAL(system.file("gmted2010_ERA5_quarter_degree.tif", package = "rgdal")[1])
-head(y@data)
-
-# Using raster to create stack from individual bands and coerce to SpatialGridDataFrame
-y <- stack( raster(system.file("pictures/Rlogo.jpg", package = "rgdal")[1], band=1),
-            raster(system.file("pictures/Rlogo.jpg", package = "rgdal")[1], band=2),
-            raster(system.file("pictures/Rlogo.jpg", package = "rgdal")[1], band=3))
-class(y)
-
-y <- as(y, "SpatialGridDataFrame")
-class(y)
-
-# do something to the data and write raster to disk  
-y@data <- y@data * 0.01  
-writeGDAL(y, "corrected.tif", drivername="GTiff", type="Float32") 
-
-saveRDS(hindcast_all, file = "/data/hindcast_all.rds")
+#and save!
+saveRDS(hindcast_all, file = "./data/hindcast_all.rds")
 
 
 
