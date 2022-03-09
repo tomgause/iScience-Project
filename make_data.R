@@ -1,13 +1,13 @@
 ### make_data.R
 # Tom Gause
-# last edited 3/7/22
+# last edited 3/9/22
 
-system("mkdir data;
-        curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.tar;
-        tar -xvf hindcasts_usa.tar ", intern = TRUE)
+system("curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.tar;
+        tar -xvf hindcasts_usa.tar;
+        rm hindcasts_usa.tar
+       ", intern = TRUE)
 
 if (!require("Dict")) { install.packages("Dict") }
-if (!require("rgbif")) { install.packages("rgbif") }
 library(Dict)
 library(tidyverse)
 library(lubridate)
@@ -18,8 +18,6 @@ library(raster)
 library(rgdal)
 library(terra)
 library(proj4)
-library(elevatr)
-library(rgbif)
 
 #change path to /data/
 df <- list.files(path = "/Users/tomgause/Desktop/iScience_data/hindcasts_usa/",
@@ -45,6 +43,7 @@ map_tt <- dict(
   .class = "any",
   .overwrite = FALSE
 )
+
 #generate mappings
 for (x in unique(hindcast_all$lag1)) {
   map_tt[x] <- hindcast_all[match(x, hindcast_all$forecast_target, nomatch=-1),]$obs_tmp_k
