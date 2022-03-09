@@ -88,9 +88,19 @@ if (!file.exists("/data/elev_cells.rds")) {
   elev_cells <- readRDS("./data/elev_cells.rds")
 }
 
+
+
 #now we append our new column...
 hindcast_all <- hindcast_all %>%
   mutate(elev = c(rep(elev_cells, nrow(hindcast_all)/14056)))
+
+#sanity check
+  # group_by(x, y) %>%
+  # summarize(Elev = mean(elev)) %>%
+  # ggplot() +
+  # geom_point(aes(x = x,
+  #                y = y,
+  #                color = Elev))
 
 #and save!
 saveRDS(hindcast_all, file = "./data/hindcast_all.rds")
