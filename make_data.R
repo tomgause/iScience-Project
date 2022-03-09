@@ -105,8 +105,6 @@ hindcast_all <- hindcast_all %>%
   #                y = y,
   #                color = Elev))
 
-function(forecast)
-
 hindcast_all <- hindcast_all %>%
   mutate(forecast_target = as.POSIXct(paste0(forecast_target, "01"),
                                     format = "%Y%m%d",
