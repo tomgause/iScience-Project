@@ -46,8 +46,6 @@ docs/
 po/*~
 
 # data subdirectory
-/data/.DS_Store
-/.DS_Store
 
 # RStudio Connect folder
 rsconnect/
