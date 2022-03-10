@@ -30,7 +30,6 @@ df <- list.files(path = "./data/",
 hindcast_all <- NULL
 N <- length(df)
 for(i in 1:N) {
-  i <- 108
   sprintf("Reading %d/%d", i, N)
   hindcast_all <- rbind(hindcast_all, readRDS(df[i]) %>%
     mutate(lag1 = substring(forecast_timestamp, 1, 6)))
