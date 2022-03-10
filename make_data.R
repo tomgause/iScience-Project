@@ -21,7 +21,7 @@ library(rgdal)
 library(terra)
 library(proj4)
 
-#change path to /data/
+#get paths to all data
 df <- list.files(path = "./data/",
                  pattern = ".rds",
                  full.names = TRUE)
@@ -115,6 +115,4 @@ hindcast_all <- hindcast_all %>%
 
 #and save!
 saveRDS(hindcast_all, file = "./data/hindcast_all.rds")
-
-
 
