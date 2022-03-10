@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 ```
 
 Read in relevant libraries. 
@@ -33,40 +33,49 @@ library(dendextend)
 
 Load in our data set. 
 ```{r}
-hindcast_data <- readRDS(file.choose()) #look at random sample of data
-hindcast_data_subset <- hindcast_data
-hindcast_data_subset <- hindcast_data_subset %>%
-  mutate(unique_row_identifer = rownames(hindcast_data_subset))
-rownames(hindcast_data_subset) <- seq(1,540,1)
+hindcast_data <- readRDS("./data/hindcast_all.rds")#look at random sample of data
+hindcast_data <- hindcast_data %>%
+  mutate(unique_row_identifer = rownames(hindcast_data)) ##maybe delete these lines and put them in the data processing file
+rownames(hindcast_data) <- seq(1,nrow(hindcast_data),1)
 ```
 
 Create our target variable: temperature bias
 A positive bias indicates the forecast underpredicted.
 A negative bias indicates the forecast overpredicted.
 ```{r}
-hindcast_data_subset <- hindcast_data_subset %>%
+hindcast_data <- hindcast_data %>%
   mutate(bias_tmp = obs_tmp_k-fcst_tmp_k)
 ```
 
 
-Variables to use are: 
+Predictor variables to use are: 
 - x
 - y
+- forecast_target
 - target_month
 - lead
 - fcst_tmp_k
-- bias_tmp ()
+- elevation 
+- c(lag1--> lag 12) 
+- fcst_pr_m_day 
+***fcst_pr_m_day: forecast precipitation ***
+***lag1 : observed temperature one month ago***
+
+Target variable:
+- bias_tmp
 
 Divide into training and testing data set. Total (sampled) data is 540 data points. 
 
 ```{r}
-training.data <- hindcast_data_subset[sample(nrow(hindcast_data_subset), 500, replace = FALSE),]
-testing.data <- hindcast_data_subset[-as.numeric(rownames(training.data)),]
+training.data <- hindcast_data %>% 
+  filter(forecast_timestamp < 2007010100)
+[sample(nrow(hindcast_data), 500, replace = FALSE)]
+testing.data <- hindcast_data[-as.numeric(rownames(training.data)),]
 ```
 
 Run a PCA, to explore relationship between variables. 
 ```{r}
-data_for_pca <- hindcast_data_subset%>%
+data_for_pca <- hindcast_data%>%
   dplyr::select(-unique_row_identifer)
 
 pca1 <- prcomp(data_for_pca, scale = TRUE)
