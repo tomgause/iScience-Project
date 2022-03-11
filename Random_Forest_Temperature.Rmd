@@ -1,7 +1,7 @@
 ---
 title: "Random Forest Temperature"
-author: "Acadia Hegedus"
-date: "3/4/2022"
+author: "Acadia Hegedus, Katelyn Mei, and Tom Gaus"
+date: "3/11/2022"
 output: html_document
 ---
 
