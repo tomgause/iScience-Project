@@ -23,14 +23,14 @@ library(proj4)
 
 #get paths to all data
 df <- list.files(path = "./data/",
-                 pattern = ".rds",
+                 pattern = "hindcasts.*.rds",
                  full.names = TRUE)
 
 #concat all data
 hindcast_all <- NULL
 N <- length(df)
-for(i in 1:N) {
-  sprintf("Reading %d/%d", i, N)
+for(i in 1:2) {
+  print("Reading %d/%d", i, N)
   hindcast_all <- rbind(hindcast_all, readRDS(df[i]) %>%
     mutate(lag1 = substring(forecast_timestamp, 1, 6)))
 }
@@ -92,26 +92,25 @@ if (!file.exists("./data/elev_cells.rds")) {
 }
 
 
-
 #now we append our new column...
 hindcast_all <- hindcast_all %>%
   mutate(elev = c(rep(elev_cells, nrow(hindcast_all)/14056)))
 
 #sanity check
-  # group_by(x, y) %>%
-  # summarize(Elev = mean(elev)) %>%
-  # ggplot() +
-  # geom_point(aes(x = x,
-  #                y = y,
-  #                color = Elev))
+# group_by(x, y) %>%
+# summarize(Elev = mean(elev)) %>%
+# ggplot() +
+# geom_point(aes(x = x,
+#                y = y,
+#                color = Elev))
 
+#convert forecast_target to Date object with day=1 for downstream tasks.
+#no need to convert forecast_timestamp (plus it's a nightmare...)
 hindcast_all <- hindcast_all %>%
-  mutate(forecast_target = as.POSIXct(paste0(forecast_target, "01"),
-                                    format = "%Y%m%d",
-                                    tz = "EST"),
-         forecast_timestamp = as.POSIXct(forecast_timestamp,
-                                    format = "%Y%m%d%H",
-                                    tz = "EST"))
+  mutate(forecast_target = as.Date(paste0(forecast_target, "01"),
+                                      format = "%Y%m%d",
+                                      tz = "EST"))
+
 
 #and save!
 saveRDS(hindcast_all, file = "./data/hindcast_all.rds")
