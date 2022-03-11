@@ -65,10 +65,33 @@ Target variable:
 
 Divide into training and testing data set. Total (sampled) data is 540 data points. 
 
+
 ```{r}
+test.data.1 <- readRDS(file.choose())
+test.data.2<- readRDS(file.choose())
+
+test.data <- rbind(test.data.1,test.data.2)
+test.data$forecast_timestamp <- as.numeric(test.data$forecast_timestamp)
+
+
+test.data.mutate <- test.data %>% 
+  mutate(forecast_target = as.Date(paste0(forecast_target, "01"),
+                                    format = "%Y%m%d",
+                                    tz = "EST"))
+
+test.data.mutate %>% 
+  filter(forecast_target >= "1983-02-01" )
+
+test.data.mutate %>% 
+  head(1)
+```
+
+```{r}
+
+
 training.data <- hindcast_data %>% 
   filter(forecast_timestamp < 2007010100)
-[sample(nrow(hindcast_data), 500, replace = FALSE)]
+
 testing.data <- hindcast_data[-as.numeric(rownames(training.data)),]
 ```
 
