@@ -32,7 +32,7 @@ library(dendextend)
 
 Load in our data set. 
 ```{r}
-hindcast_data <- readRDS("./data/hindcast_all.rds")#look at random sample of data
+hindcast_data <- readRDS("./data/hindcast_all.rds")
 hindcast_data <- hindcast_data %>%
   mutate(unique_row_identifer = rownames(hindcast_data)) ##maybe delete these lines and put them in the data processing file
 rownames(hindcast_data) <- seq(1,nrow(hindcast_data),1)
@@ -55,7 +55,7 @@ Predictor variables to use are:
 - lead
 - fcst_tmp_k
 - elevation 
-- c(lag1--> lag 12) 
+- c(lag1--> lag12) 
 - fcst_pr_m_day 
 ***fcst_pr_m_day: forecast precipitation ***
 ***lag1 : observed temperature one month ago***
@@ -63,36 +63,17 @@ Predictor variables to use are:
 Target variable:
 - bias_tmp
 
-Divide into training and testing data set. Total (sampled) data is 540 data points. 
-
-
-```{r}
-test.data.1 <- readRDS(file.choose())
-test.data.2<- readRDS(file.choose())
-
-test.data <- rbind(test.data.1,test.data.2)
-test.data$forecast_timestamp <- as.numeric(test.data$forecast_timestamp)
-
-
-test.data.mutate <- test.data %>% 
-  mutate(forecast_target = as.Date(paste0(forecast_target, "01"),
-                                    format = "%Y%m%d",
-                                    tz = "EST"))
-
-test.data.mutate %>% 
-  filter(forecast_target >= "1983-02-01" )
-
-test.data.mutate %>% 
-  head(1)
-```
+Divide into training and testing data set. Total data is ~ 1 billion rows. 
+Train on: forecast_targets 1984-01 to 2006-12
+Test on: forecast_targets 2007-01 to END
 
 ```{r}
-
-
 training.data <- hindcast_data %>% 
-  filter(forecast_timestamp < 2007010100)
+  filter(forecast_target < "2007-01-01")%>%
+  filter(forecast_target >= "1984-01-01")
 
-testing.data <- hindcast_data[-as.numeric(rownames(training.data)),]
+testing.data <- hindcast_data%>%
+  filter(forecast_target >= "2007-01-01")
 ```
 
 Run a PCA, to explore relationship between variables. 
@@ -101,14 +82,19 @@ data_for_pca <- hindcast_data%>%
   dplyr::select(-unique_row_identifer)
 
 pca1 <- prcomp(data_for_pca, scale = TRUE)
-biplot(pca1)
+
+pca1 #see outputs of PCA
+
+plot(pca1) #see how much variance is explained by first few PCs
+
+plot(cumsum(pca1$sdev^2/4))
+
 ```
 
 
+Take out correlated variables if found.  
 
-Take out correlated variables. There don't seem to be any. 
-
-Use k-fold cross validation to minimize error for a random forest. Can use all variables, both quantitative and qualitative. 
+To train our random forest, we will use all variables, both quantitative and qualitative, except for forecast_timestamp. We exclude forecast_timestamp as it is embedded in lead and forecast_target. This leaves us with the following 20 predictor variables: x, y, forecast_target, target_month, lead, fcst_tmp_k, elevation, lag1, lag2, lag3, lag4, lag5, lag6, lag7, lag8, lag9, lag10, lag11, lag12, fcst_pr_m_day.  
 
 To optimize our random forest, we will need to pick the best hyperparameters including mtry (the number of variables for each bagged regression tree to consider), node size (the minimum size of a terminal node), and bootstrap resample size. We fix ntree (the number of trees in our random forest) to be 100 and optimize it later, as we know more trees in our forest will only increase the model's performance. We define error here as the out-of-bag mean squared error of the random forest's predictions.
 
@@ -117,10 +103,10 @@ To optimize our random forest, we will need to pick the best hyperparameters inc
  metric.data <- data.frame(0,0,0,0)
  colnames(metric.data) <- c("i", "j", "k", "error")
  
- for (i in 1:5){ #range of mtry 
-   for (j in 1:10){ #range of nodesizes ADAPT THIS RANGE?
-     for (k in seq(100,500, by = 50)){ #range of bootstrap resample sizes
-       rf <- randomForest(bias_tmp ~ target_month + x + y + lead + fcst_tmp_k,
+ for (i in 1:20){ #range of mtry 
+   for (j in c(10,100,1000,10000,100000,1000000)){ #range of nodesizes
+     for (k in seq(nrow(hindcast_data)/2,nrow(hindcast_data), by = 10000000)){ #range of bootstrap resample sizes (around 49 options)
+       rf <- randomForest(bias_tmp ~ x + y + forecast_target + target_month + lead + fcst_tmp_k + elevation + lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9 + lag10 + lag11 + lag12 + fcst_pr_m_day,
                    data = training.data, mtry = i, nodesize = j,sampsize = k, ntree = 100) #this is lower than we would like, but we will change later
  
        error <- tail(rf$mse, 1) #this came from https://stats.stackexchange.com/questions/369134/random-forest-out-of-bag-rmse
@@ -141,38 +127,50 @@ To optimize our random forest, we will need to pick the best hyperparameters inc
 We save this run as a csv so we don't have to rerun this lengthy optimization when we knit.
 
 ```{r}
+write.csv(metric.data, "Random_Forest_Temperature_MetricData.csv")
+```
+
+
+Print out optimal hyperparameters.
+
+```{r}
 metric.data1 <- metric.data
-metric.data1 <- metric.data1[2:451,] #remove 0,0,0,0 row
+metric.data1 <- metric.data1[2:nrow(metric.data1),] #remove 0,0,0,0 row
 which.min.error <- which.min(metric.data1$error)
 best.parameters <- metric.data1[which.min.error,]
 print(paste("The most ideal hyperparameters are mtry = ", best.parameters$mtry, ", nodesize = ", best.parameters$nodesize, ", bootstrap resample size = ", best.parameters$resamplesize, ", with an error of", round(best.parameters$error)))
 ```
 
-To optimize the random forest hyperparameters, all values of mtry were tested (1:13), where 13 is the number of possible input variables. For node size, only 1:10 were tested, and the 5 smallest error random forests had node sizes far below from the maximum tested value of 10. So, I decide not to test higher minimum node sizes. For the bootstrap resample size, I chose to test a range of values up to the maximum number of rows in the data set. I assumed a resample smaller than ~50% of my data set would not be effective. Ideally, I would test more granular values for this bootstrap resample size, but in the interest of time, I leave it at this. 
+To optimize the random forest hyperparameters, all values of mtry were tested (1:20), where 20 is the number of possible input variables. For node size, a logarithmic scale sequence was tested. For the bootstrap resample size, we chose to test a range of values up to the maximum number of rows in the data set. I assumed a resample smaller than ~50% of my data set would not be effective. 
 
+Next step: look at output of metric.data, see if we need to test more granlar bootstrap resample size, nodesize.
+
+
+
+_________________________________________________________________________________
 Now that we have our ideal mtry, node size, and resample size, all that's left is to choose ntree, or the number of trees. As noted earlier, more trees means less error, so let's see what a reasonable optimal ntree might be, considering run time. Let's compare the error from using ntree = 100 vs. ntree = 500.
 
 ```{r}
 #try ntree = 100 (what was done above)
-#we know error = 127, as was calculated above
-system.time(rf100 <- randomForest(ActivePower ~ .,
-                 data = before.wind.rf, mtry = 9, nodesize = 1,sampsize = 10636, ntree = 100))
+#we know error = X, as was calculated above
+# system.time(rf100 <- randomForest(ActivePower ~ .,
+#                  data = before.wind.rf, mtry = 9, nodesize = 1,sampsize = 10636, ntree = 100))
 ```
 
-Ntree = 100 took just over a minute to run, with an error of 127.
+Ntree = 100 took X minutes to run, with an error of X.
 
 ```{r}
 #try ntree = 500
- rf500 <- randomForest(ActivePower ~ .,
-                  data = before.wind.rf, mtry = 9, nodesize = 1,sampsize = 10636, ntree = 500)
+ # rf500 <- randomForest(ActivePower ~ .,
+ #                  data = before.wind.rf, mtry = 9, nodesize = 1,sampsize = 10636, ntree = 500)
+ # 
+ # system.time(rf500 <- randomForest(ActivePower ~ .,
+ #                  data = before.wind.rf, mtry = 9, nodesize = 1,sampsize = 10636, ntree = 500))
  
- system.time(rf500 <- randomForest(ActivePower ~ .,
-                  data = before.wind.rf, mtry = 9, nodesize = 1,sampsize = 10636, ntree = 500))
- 
- tail(rf500$mse,1)
+ # tail(rf500$mse,1)
 ```
 
-Running our random forest with 500 trees caused R to crash, so we are going to assume that 500 trees with our data set is too much for our computer to handle. Ideally we would have more than 100 trees in our forest, but we will have to stick with 100 trees to respect our computer's capabilities.
+Ntree = 500 took X minutes to run, with an error of X.
 
 
 
