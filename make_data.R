@@ -27,7 +27,7 @@ print("Concatenating All Data...")
 hindcast_all <- NULL
 N <- length(df)
 for(i in 1:N) {
-  sprintf("Reading %f/%f...\n", i, N)
+  print(i)
   hindcast_all <- rbind(hindcast_all, readRDS(df[i]) %>%
     mutate(lag1 = substring(forecast_timestamp, 1, 6)))
 }
