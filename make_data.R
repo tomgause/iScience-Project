@@ -25,7 +25,7 @@ df <- list.files(path = "C:\\Users\\tgause\\iScience_Project\\data",
 hindcast_all <- NULL
 N <- length(df)
 for(i in 1:N) {
-  print("Reading %d/%d", i, N)
+  sprintf("Reading %d/%d", i, N)
   hindcast_all <- rbind(hindcast_all, readRDS(df[i]) %>%
     mutate(lag1 = substring(forecast_timestamp, 1, 6)))
 }
