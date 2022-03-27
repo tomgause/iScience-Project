@@ -21,11 +21,13 @@ df <- list.files(path = "C:\\Users\\tgause\\iScience_Project\\data",
                  pattern = "hindcasts.*.rds",
                  full.names = TRUE)
 
+
+print("Concatenating All Data...")
 #concat all data
 hindcast_all <- NULL
 N <- length(df)
 for(i in 1:N) {
-  sprintf("Reading %f/%f", i, N)
+  sprintf("Reading %f/%f...\n", i, N)
   hindcast_all <- rbind(hindcast_all, readRDS(df[i]) %>%
     mutate(lag1 = substring(forecast_timestamp, 1, 6)))
 }
