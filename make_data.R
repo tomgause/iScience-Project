@@ -2,11 +2,11 @@
 # Tom Gause
 # last edited 3/9/22
 
-system("cd data;
-        curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.tar;
-        tar -xvf hindcasts_usa.tar;
-        cd ..",
-       intern = TRUE)
+# system("cd data;
+#         curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.tar;
+#         tar -xvf hindcasts_usa.tar;
+#         cd ..",
+#        intern = TRUE)
 
 if (!require("Dict")) { install.packages("Dict") }
 library(Dict)
@@ -21,22 +21,24 @@ library(terra)
 library(proj4)
 
 #get paths to all data
-df <- list.files(path = "./data/",
+df <- list.files(path = "C:\Users\tgause\iScience_Project\data",
                  pattern = "hindcasts.*.rds",
                  full.names = TRUE)
 
 #concat all data
 hindcast_all <- NULL
 N <- length(df)
-for(i in 1:2) {
+for(i in 1:N) {
   print("Reading %d/%d", i, N)
   hindcast_all <- rbind(hindcast_all, readRDS(df[i]) %>%
     mutate(lag1 = substring(forecast_timestamp, 1, 6)))
 }
 
+print("Ordering by Forecast Timestamp...")
 #temporal ordering by forecast timestamp (lag1 for more efficiency)
 hindcast_all <- hindcast_all[order(hindcast_all$forecast_timestamp),]
 
+print("Making Dictionary...")
 #make dictionary from %Y%m to temperature (for efficiency)
 map_tt <- NULL
 map_tt <- dict(
@@ -45,11 +47,13 @@ map_tt <- dict(
   .overwrite = FALSE
 )
 
+print("Generating unique mappings...")
 #generate mappings
 for (x in unique(hindcast_all$lag1)) {
   map_tt[x] <- hindcast_all[match(x, hindcast_all$forecast_target, nomatch=-1),]$obs_tmp_k
 }
 
+print("Generating lags...")
 #make the lags with dplyr. Turns out forecast_timestamp was useful after all!
 hindcast_all <- hindcast_all %>%
   mutate(lag1 = map_tt[lag1],
@@ -85,12 +89,12 @@ if (!file.exists("./data/elev_cells.rds")) {
     elev_cells[i] <- elev_df$gmted2010_ERA5_quarter_degree[is_cell]
   }
 
-  saveRDS(elev_cells, file = "./data/elev_cells.rds")
+  saveRDS(elev_cells, file = "C:\Users\tgause\iScience_Project\data\elev_cells.rds")
 } else {
-  elev_cells <- readRDS("./data/elev_cells.rds")
+  elev_cells <- readRDS("C:\Users\tgause\iScience_Project\data\elev_cells.rds")
 }
 
-
+print("Appending elevation data...")
 #now we append our new column...
 hindcast_all <- hindcast_all %>%
   mutate(elev = c(rep(elev_cells, nrow(hindcast_all)/14056)))
@@ -103,6 +107,7 @@ hindcast_all <- hindcast_all %>%
 #                y = y,
 #                color = Elev))
 
+print("Converting forecast_target to Date...")
 #convert forecast_target to Date object with day=1 for downstream tasks.
 #no need to convert forecast_timestamp (plus it's a nightmare...)
 hindcast_all <- hindcast_all %>%
@@ -110,8 +115,8 @@ hindcast_all <- hindcast_all %>%
                                       format = "%Y%m%d",
                                       tz = "EST"))
 
-
+print("Saving...")
 #and save!
-saveRDS(hindcast_all, file = "./data/hindcast_all.rds")
+saveRDS(hindcast_all, file = "C:\Users\tgause\iScience_Project\data")
 
 
