@@ -5,7 +5,6 @@
 system("cd data;
         curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.tar;
         tar -xvf hindcasts_usa.tar;
-        rm hindcasts_usa.tar;
         cd ..",
        intern = TRUE)
 
