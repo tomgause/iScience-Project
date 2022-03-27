@@ -15,13 +15,9 @@ library(lubridate)
 library(zoo)
 library(dplyr)
 library(sf)
-library(raster)
-library(rgdal)
-library(terra)
-library(proj4)
 
 #get paths to all data
-df <- list.files(path = "C:\Users\tgause\iScience_Project\data",
+df <- list.files(path = "C:\\Users\\tgause\\iScience_Project\\data",
                  pattern = "hindcasts.*.rds",
                  full.names = TRUE)
 
@@ -89,9 +85,9 @@ if (!file.exists("./data/elev_cells.rds")) {
     elev_cells[i] <- elev_df$gmted2010_ERA5_quarter_degree[is_cell]
   }
 
-  saveRDS(elev_cells, file = "C:\Users\tgause\iScience_Project\data\elev_cells.rds")
+  saveRDS(elev_cells, file = "C:\\Users\\tgause\\iScience_Project\\data\\elev_cells.rds")
 } else {
-  elev_cells <- readRDS("C:\Users\tgause\iScience_Project\data\elev_cells.rds")
+  elev_cells <- readRDS("C:\\Users\\tgause\\iScience_Project\\data\\elev_cells.rds")
 }
 
 print("Appending elevation data...")
@@ -117,6 +113,6 @@ hindcast_all <- hindcast_all %>%
 
 print("Saving...")
 #and save!
-saveRDS(hindcast_all, file = "C:\Users\tgause\iScience_Project\data")
+saveRDS(hindcast_all, file = "C:\\Users\\tgause\\iScience_Project\\data")
 
 
