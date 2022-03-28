@@ -33,7 +33,7 @@ for(i in 1:N) {
   tmp <- readRDS(df[i])
   tmpL[[i]] <- tmp
 }
-hindcast_all <- do.call("rbind", tmpL)
+hindcast_all <- dplyr::bind_rows(tmpL)
 
 saveRDS(hindcast_all, file = "C:\\Users\\tgause\\iScience_Project\\data")
 
