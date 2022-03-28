@@ -17,20 +17,28 @@ library(dplyr)
 library(sf)
 
 #get paths to all data
-df <- list.files(path = "C:\\Users\\tgause\\iScience_Project\\data",
+df <- list.files(path = "./data",
                  pattern = "hindcasts.*.rds",
                  full.names = TRUE)
 
 
 print("Concatenating All Data...")
-#concat all data
-hindcast_all <- NULL
+#concat all data. Did it the smart way, not the stupid way!
+
 N <- length(df)
+tmp <- NULL
+tmpL <- list()
 for(i in 1:N) {
-  print(i)
-  hindcast_all <- rbind(hindcast_all, readRDS(df[i]) %>%
-    mutate(lag1 = substring(forecast_timestamp, 1, 6)))
+  tmp <- readRDS(df[i])
+  tmpL[[i]] <- tmp
 }
+hindcast_all <- do.call("rbind", tmpL)
+
+saveRDS(hindcast_all, file = "C:\\Users\\tgause\\iScience_Project\\data")
+
+#create first lag
+hindcast_all <- hindcast_all %>%
+  mutate(lag1 = substring(forecast_timestamp, 1, 6))
 
 print("Ordering by Forecast Timestamp...")
 #temporal ordering by forecast timestamp (lag1 for more efficiency)
