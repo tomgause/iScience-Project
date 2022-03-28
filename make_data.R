@@ -29,6 +29,7 @@ N <- length(df)
 tmp <- NULL
 tmpL <- list()
 for(i in 1:N) {
+  print(i)
   tmp <- readRDS(df[i])
   tmpL[[i]] <- tmp
 }
