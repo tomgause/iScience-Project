@@ -17,7 +17,7 @@ library(dplyr)
 library(sf)
 
 #get paths to all data
-df <- list.files(path = "./data",
+df <- list.files(path = "C:\\Users\\tgause\\iScience_Project\\data",
                  pattern = "hindcasts.*.rds",
                  full.names = TRUE)
 
