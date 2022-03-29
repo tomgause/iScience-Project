@@ -8,8 +8,6 @@
 #         cd ..",
 #        intern = TRUE)
 
-if (!require("Dict")) { install.packages("Dict") }
-library(Dict)
 library(tidyverse)
 library(lubridate)
 library(zoo)
@@ -35,9 +33,83 @@ for(i in 1:N) {
 }
 hindcast_all <- dplyr::bind_rows(tmpL)
 
-saveRDS(hindcast_all, file = "C:\\Users\\tgause\\iScience_Project\\data")
+#saveRDS(hindcast_all, file = "C:\\Users\\tgause\\iScience_Project\\data")
+#don't save yet as this will break R
 
-#create first lag
+#choose 10% of pixels at random
+sample_data <- readRDS(file.choose()) #read in hindcast_month_1_lead_1.rds
+
+all_pixels <- sample_data%>%
+  dplyr::select(fcst_cell)%>%
+  unique()
+
+pixel_subset <- all_pixels[sample(nrow(all_pixels), nrow(all_pixels)*0.1), ]
+
+hindcast_subset <- hindcast_all%>%
+  filter(fcst_cell %in% pixel_subset)
+
+#Add on temperature lags
+
+hindcast_subset$forecast_timestamp <- substring(hindcast_subset$forecast_timestamp, 1, 6)
+hindcast_subset$forecast_timestamp <- ym(hindcast_subset$forecast_timestamp)
+
+#create lag time identifier function
+#input: timestamp, lag time wanted
+#output: Observed YearMonth value needed
+find_lag_id <- function(timestamp, lag){
+  new_month <- month(timestamp) - lag
+  if (new_month < 1) {
+    output_year <- year(timestamp) - 1
+    output_month <- 12 + new_month
+  }
+  else {
+    output_year <- year(timestamp)
+    output_month <- new_month
+  }
+  if (output_month < 10){
+    output_month <- paste0("0",output_month)
+  }
+  output <- paste0(output_year,output_month)
+  return(output)
+}
+
+hindcast_subset <- hindcast_subset%>%
+  mutate(lag1 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 1),
+         lag2 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 2),
+         lag3 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 3),
+         lag4 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 4),
+         lag5 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 5),
+         lag6 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 6),
+         lag7 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 7),
+         lag8 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 8),
+         lag9 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 9),
+         lag10 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 10),
+         lag11 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 11),
+         lag12 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 12))
+  #this works but gives a weird error?
+  
+#Create observed data set (Lag Data)
+lag.data <- hindcast_subset%>%
+  dplyr::select(forecast_target,obs_pr_m_day,obs_tmp_k, fcst_cell)%>%
+  unique()
+
+colnames(lag.data)[1] <- "date"
+
+#left_join data set with lag.data for each lag column, changing lagi to observed temp
+hindcast_subset_temp_lags <- hindcast_subset
+for (i in (1:12)){
+  mylag <- paste0("lag",i)
+  hindcast_subset_temp_lags <- left_join(hindcast_subset_temp_lags, lag.data, by = c("fcst_cell", 
+                                                          setNames("date", mylag)))
+  hindcast_subset_temp_lags[mylag] <- hindcast_subset_temp_lags[,26] #grab observed temp column
+  hindcast_subset_temp_lags <- hindcast_subset_temp_lags[,1:24]
+}
+
+#save!
+saveRDS(hindcast_subset_temp_lags, file = "C:\\Users\\ahegedus\\iScience_Project\\data")
+
+##################################################################
+#create first lag 
 hindcast_all <- hindcast_all %>%
   mutate(lag1 = substring(forecast_timestamp, 1, 6))
 
@@ -60,6 +132,7 @@ for (x in unique(hindcast_all$lag1)) {
   map_tt[x] <- hindcast_all[match(x, hindcast_all$forecast_target, nomatch=-1),]$obs_tmp_k
 }
 
+#?!?!!?!?!?!?!!?
 print("Generating lags...")
 #make the lags with dplyr. Turns out forecast_timestamp was useful after all!
 hindcast_all <- hindcast_all %>%
