@@ -54,6 +54,10 @@ hindcast_subset <- hindcast_all%>%
 hindcast_subset$forecast_timestamp <- substring(hindcast_subset$forecast_timestamp, 1, 6)
 hindcast_subset$forecast_timestamp <- ym(hindcast_subset$forecast_timestamp)
 
+#pick one pixel
+hindcast_one <- hindcast_subset%>%
+  filter(fcst_cell == "236396")
+
 #create lag time identifier function
 #input: timestamp, lag time wanted
 #output: Observed YearMonth value needed
@@ -75,19 +79,18 @@ find_lag_id <- function(timestamp, lag){
 }
 
 hindcast_subset <- hindcast_subset%>%
-  mutate(lag1 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 1),
-         lag2 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 2),
-         lag3 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 3),
-         lag4 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 4),
-         lag5 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 5),
-         lag6 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 6),
-         lag7 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 7),
-         lag8 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 8),
-         lag9 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 9),
-         lag10 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 10),
-         lag11 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 11),
-         lag12 = find_lag_id(timestamp = hindcast_subset$forecast_timestamp, lag = 12))
-#this works but gives a weird error?
+  mutate(lag1 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 1),
+         lag2 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 2),
+         lag3 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 3),
+         lag4 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 4),
+         lag5 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 5),
+         lag6 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 6),
+         lag7 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 7),
+         lag8 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 8),
+         lag9 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 9),
+         lag10 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 10),
+         lag11 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 11),
+         lag12 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 12))
 
 #Create observed data set (Lag Data)
 lag.data <- hindcast_subset%>%
@@ -100,8 +103,8 @@ colnames(lag.data)[1] <- "date"
 hindcast_subset_temp_lags <- hindcast_subset
 for (i in (1:12)){
   mylag <- paste0("lag",i)
-  hindcast_subset_temp_lags <- left_join(hindcast_subset_temp_lags, lag.data, by = c("fcst_cell", 
-                                                                                     setNames("date", mylag)))
+  hindcast_subset_temp_lags <- left_join(hindcast_subset_temp_lags, lag.data, by = 
+                                           c("fcst_cell", setNames("date", mylag)))
   hindcast_subset_temp_lags[mylag] <- hindcast_subset_temp_lags[,26] #grab observed temp column
   hindcast_subset_temp_lags <- hindcast_subset_temp_lags[,1:24]
 }
@@ -112,45 +115,19 @@ saveRDS(hindcast_subset_temp_lags, file = "C:\\Users\\ahegedus\\Documents\\iScie
 #read in above saved file so we don't have to run it again:
 hindcast_subset_temp_lags <- readRDS(file = "C:\\Users\\ahegedus\\Documents\\iScience_Project\\data\\hindcast_subset_temp_lags.rds")
 
-elev_cells <- NULL
-#check for elevation data and generate if it doesn't exist
-if (!file.exists("./data/elev_cells.rds")) {
-  #there's definitely a better way but this is functional
-  #TODO: ask in next meeting "how to do this in a not dumb way..."
-  cells <- data.frame(
-    x <- hindcast_all$x[1:14056],
-    y <- hindcast_all$y[1:14056])
-  
-  elev <- rast('./data/gmted2010_ERA5_quarter_degree.tif')
-  elev_df <- as.data.frame(elev, xy=TRUE)
-  
-  for (i in 1:14056) {
-    is_cell <- (elev_df$x == cells$x[i]) & (elev_df$y == cells$y[i])
-    elev_cells[i] <- elev_df$gmted2010_ERA5_quarter_degree[is_cell]
-  }
-  
-  saveRDS(elev_cells, file = "C:\\Users\\ahegedus\\Documents\\iScience_Project\\data\\elev_cells.rds")
-} else {
-  elev_cells <- readRDS("C:\\Users\\ahegedus\\Documents\\iScience_Project\\data\\elev_cells.rds")
-}
-
-#make elev_cells into a data frame
-elev_df <- data.frame(fcst_cell = sample_data$fcst_cell, x = sample_data$x, 
-                      y = sample_data$y, elevation = elev_cells)
+#get complete elevation data
+elev <- rast('./data/gmted2010_ERA5_quarter_degree.tif')
+elev_df <- as.data.frame(elev, xy=TRUE)
 
 #sanity check: looks right!
 # elev_df%>%
 #   ggplot(mapping = aes(x = x, y = y, color = elevation))+
 #   geom_point()
 
-#remove x,y in elevation data after we graph to make joining easier
-elev_df2 <- elev_df%>%
-  dplyr::select(-c(x,y))
-
 print("Appending elevation data...")
 #now we append our new column...
-hindcast_subset_temp_lags <- left_join(hindcast_subset_temp_lags, elev_df2, 
-                                       by = c("fcst_cell"))
+hindcast_subset_temp_lags <- left_join(hindcast_subset_temp_lags, elev_df, 
+                                       by = c("x", "y"))
 
 #why is this giving me an error? "cannot allocate vector of size 235 Gb"
 
