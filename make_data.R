@@ -58,39 +58,39 @@ hindcast_subset$forecast_timestamp <- ym(hindcast_subset$forecast_timestamp)
 hindcast_one <- hindcast_subset%>%
   filter(fcst_cell == "236396")
 
-#create lag time identifier function
-#input: timestamp, lag time wanted
-#output: Observed YearMonth value needed
-find_lag_id <- function(timestamp, lag){
-  new_month <- month(timestamp) - lag
-  if (new_month < 1) {
-    output_year <- year(timestamp) - 1
-    output_month <- 12 + new_month
-  }
-  else {
-    output_year <- year(timestamp)
-    output_month <- new_month
-  }
-  if (output_month < 10){
-    output_month <- paste0("0",output_month)
-  }
-  output <- paste0(output_year,output_month)
-  return(output)
-}
+# #create lag time identifier function
+# #input: timestamp, lag time wanted
+# #output: Observed YearMonth value needed
+# find_lag_id <- function(timestamp, lag){
+#   new_month <- month(timestamp) - lag
+#   if (new_month < 1) {
+#     output_year <- year(timestamp) - 1
+#     output_month <- 12 + new_month
+#   }
+#   else {
+#     output_year <- year(timestamp)
+#     output_month <- new_month
+#   }
+#   if (output_month < 10){
+#     output_month <- paste0("0",output_month)
+#   }
+#   output <- paste0(output_year,output_month)
+#   return(output)
+# }
 
 hindcast_subset <- hindcast_subset%>%
-  mutate(lag1 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 1),
-         lag2 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 2),
-         lag3 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 3),
-         lag4 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 4),
-         lag5 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 5),
-         lag6 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 6),
-         lag7 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 7),
-         lag8 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 8),
-         lag9 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 9),
-         lag10 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 10),
-         lag11 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 11),
-         lag12 = sapply(hindcast_subset$forecast_timestamp,find_lag_id,lag = 12))
+  mutate(lag1 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-1)),
+         lag2 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-2)),
+         lag3 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-3)),
+         lag4 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-4)),
+         lag5 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-5)),
+         lag6 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-6)),
+         lag7 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-7)),
+         lag8 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-8)),
+         lag9 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-9)),
+         lag10 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-10)),
+         lag11 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-11)),
+         lag12 = add_with_rollback(hindcast_subset$forecast_timestamp, months(-12)))
 
 #Create observed data set (Lag Data)
 lag.data <- hindcast_subset%>%
