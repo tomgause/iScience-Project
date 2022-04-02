@@ -56,7 +56,8 @@ rm(tmp)
 
 #concatenate batch 2
 tmp <- NULL
-for(i in 1:N/2) {
+tmpL <- NULL
+for(i in 1:(N/2)) {
   print(i+N/2)
   tmp <- readRDS(df[i+N/2])
   tmpL[[i]] <- tmp
