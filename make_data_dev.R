@@ -30,10 +30,10 @@ setwd(dirname(getActiveDocumentContext()$path))
 #get paths to all data
 df <- c(list.files(path = "./data/old",
                    pattern = "hindcasts.*.rds",
-                   full.names = TRUE),
-        list.files(path = "./data/new",
-                   pattern = "forecasts.*.rds",
-                   full.names = TRUE))
+                   full.names = TRUE))#,
+#list.files(path = "./data/new",
+#pattern = "forecasts.*.rds",
+#full.names = TRUE))
 
 #concat all data
 #we have to do it in 2 parts because it's too big!!!
@@ -41,7 +41,7 @@ print("concatenating hindcast subsets...")
 N <- length(df)
 tmp <- NULL
 tmpL <- list()
-for(i in 1:N/2) {
+for(i in 1:N) {#(N/2)) {
   print(i)
   tmp <- readRDS(df[i])
   tmpL[[i]] <- tmp
@@ -49,33 +49,33 @@ for(i in 1:N/2) {
 }
 
 #concatenate batch 1
-print("saving batch 1...")
-hindcast_all_1 <- dplyr::bind_rows(tmpL)
+#print("saving batch 1...")
+hindcast_all <- dplyr::bind_rows(tmpL)
 rm(tmpL)
 rm(tmp)
 
-#concatenate batch 2
-tmp <- NULL
-tmpL <- NULL
-for(i in 1:(N/2)) {
-  print(i+N/2)
-  tmp <- readRDS(df[i+N/2])
-  tmpL[[i]] <- tmp
-  gc() #clear garbage memory
-}
-
-#save batch 2
-print("saving batch 2...")
-hindcast_all_2 <- dplyr::bind_rows(tmpL)
-#free list memory, we're done with it now!
-rm(tmpL)
-rm(tmp)
+# #concatenate batch 2
+# tmp <- NULL
+# tmpL <- NULL
+# for(i in 1:(N/2)) {
+#   print(i+N/2)
+#   tmp <- readRDS(df[i+N/2])
+#   tmpL[[i]] <- tmp
+#   gc() #clear garbage memory
+# }
+# 
+# #save batch 2
+# print("saving batch 2...")
+# hindcast_all_2 <- dplyr::bind_rows(tmpL)
+# #free list memory, we're done with it now!
+# rm(tmpL)
+# rm(tmp)
 
 #try to concatenate everything...
-hindcast_all <- rbind(hindcast_all_1, hindcast_all_2)
+#hindcast_all <- rbind(hindcast_all_1, hindcast_all_2)
 
 #free unused memory
-rm(hindcast_all_1, hindcast_all_2)
+#rm(hindcast_all_1, hindcast_all_2)
 
 #choose 10% of pixels at random
 #read in hindcast_month_1_lead_1.rds
