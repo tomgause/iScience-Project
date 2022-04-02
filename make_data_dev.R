@@ -32,7 +32,7 @@ df <- c(list.files(path = "./data/old",
                    pattern = "hindcasts.*.rds",
                    full.names = TRUE),
         list.files(path = "./data/new",
-                   pattern = "hindcasts.*.rds",
+                   pattern = "forecasts.*.rds",
                    full.names = TRUE))
 
 #concat all data
