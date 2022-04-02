@@ -28,9 +28,12 @@ library(rstudioapi)
 setwd(dirname(getActiveDocumentContext()$path)) 
 
 #get paths to all data
-df <- list.files(path = "./data",
-                 pattern = "hindcasts.*.rds",
-                 full.names = TRUE)
+df <- c(list.files(path = "./data/old",
+                   pattern = "hindcasts.*.rds",
+                   full.names = TRUE),
+        list.files(path = "./data/new",
+                   pattern = "hindcasts.*.rds",
+                   full.names = TRUE))
 
 #concat all data
 print("concatenating hindcast subsets...")
