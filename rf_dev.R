@@ -28,11 +28,12 @@ setwd(dirname(getActiveDocumentContext()$path))
 
 # Load in our data sets.
 # For the first experiment, let's use a single cell!
-hindcast_data <- readRDS("./data/train_subset__2022-04-05_11-10-01.RDS") #TODO: UPDATE
+train.data <- readRDS("./data/train_subset__2022-04-05_11-10-01.RDS") #TODO: UPDATE
 test.data <- readRDS("./data/test_subset_2022-04-05_11-22-14.RDS") #AND THIS
 
 # generate mse for qm predictions (for later analysis)
 qm.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_qm_tmp_k)^2)
+
 
 
 # I removed the "bias" column. We can figure out if we're making an over-
@@ -52,12 +53,11 @@ qm.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_qm_tmp_k)^2)
 #   Target variable:
 #   - obs_tmp_k.x
 
-# clean up data. We don't need these columns for our analysis
-training.data <- subset(hindcast_data, select = c(-forecast_timestamp,
+# clean up data. We don't need any of these columns for our analysis
+train.data <- subset(train.data, select = c(-forecast_timestamp,
                                                   -fcst_cell,
                                                   -obs_pr_m_day.x,
                                                   -forecast_target))
-
 test.data <- subset(test.data, select = c(-forecast_timestamp,
                                           -fcst_cell,
                                           -obs_pr_m_day.x,
@@ -66,8 +66,7 @@ test.data <- subset(test.data, select = c(-forecast_timestamp,
                                           -fcst_qm_pr_m_day,
                                           -obs_cell))
 
-#remove hindcast data to free memory
-rm(hindcast_data)
+# clean up memory!
 gc()
 
 # For now, PCA is de-selected!
@@ -87,8 +86,7 @@ gc()
 # consider), node size (the minimum size of a terminal node), and bootstrap 
 # resample size. We fix ntree (the number of trees in our random forest) to be 
 # 100 and optimize it later, as we know more trees in our forest will only 
-# increase the model's performance. We define error here as the out-of-bag 
-# mean squared error of the random forest's predictions.
+# increase the model's performance.
 
 metric.data <- data.frame(0,0,0,0)
 colnames(metric.data) <- c("i", "j", "k", "error")
@@ -97,26 +95,24 @@ count <- 0
 for (i in 1:20){ #range of mtry 
   for (j in c(10,100,1000,10000,100000)){ #range of nodesizes
     for (k in c(0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) { #range of sample fractions
-      rf <- ranger(obs_tmp_k.x ~ ., # Used ranger function, much faster than randomforest
-                   data = training.data,
-                   num.trees = 250, # adjust this later
+      
+      count <- count + 1
+      print(sprintf("\n\n\n MODEL %f of 800", count)) # 20 * 5 * 8 total models
+      
+      rf <- ranger(obs_tmp_k.x ~ ., # More efficient
+                   data = train.data,
+                   num.trees = 100, # Adjust this later
                    mtry = i, 
                    min.node.size = j,
                    sample.fraction = k,
-                   num.threads = 16)
+                   num.threads = 16) # 16/20 threads on Alex machine
       
-      pred <- predict(rf, data = training.data)
+      # Generate predictions on test data and find MSE
+      pred <- predict(rf, data = test.data)
       error <- mean((test.data$obs_tmp_k.x-pred$predictions)^2)
       
-      #error <- tail(rf$mse, 1) #this came from https://stats.stackexchange.com/questions/369134/random-forest-out-of-bag-rmse
-      #rf$mse gives OOB mse for bagging 1:n trees, so last mse in this vector gives the OOB mse of the entire forest
-      
-      newdf <- data.frame(i,j,k,error)
-      metric.data <- rbind(metric.data, newdf)
-      
-      # Get count
-      count <- count + 1
-      print(count)
+      # Bind metric data to frame
+      metric.data <- rbind(metric.data, data.frame(i,j,k,error))
     }
   }
 }
