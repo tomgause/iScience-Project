@@ -28,7 +28,7 @@ library(rstudioapi)
 setwd(dirname(getActiveDocumentContext()$path)) 
 
 #get relevant cells from train data
-train_cells <- readRDS("./data/train_subset_first.RDS") %>%
+train_cells <- readRDS("./data/train_subset__2022-04-05_11-10-01.RDS") %>%
   select(fcst_cell)%>%
   unique()
 gc()
@@ -59,6 +59,9 @@ rm(tmp)
 #choose relevant cells
 hindcast_subset <- hindcast_all%>%
   filter(fcst_cell %in% train_cells$fcst_cell)
+
+#remove this column bc we don't know what it does
+hindcast_subset <- subset(hindcast_subset, select = c(-obs_cell))
 
 
 
@@ -114,7 +117,7 @@ elev <- rast('./data/gmted2010_ERA5_quarter_degree.tif')
 elev_df <- as.data.frame(elev, xy=TRUE)
 hindcast_subset_temp_lags <- left_join(hindcast_subset_temp_lags, elev_df, 
                                        by = c("x", "y"))
-colnames(hindcast_subset_temp_lags)[27] <- "elevation" 
+colnames(hindcast_subset_temp_lags)[26] <- "elevation" 
 
 
 
