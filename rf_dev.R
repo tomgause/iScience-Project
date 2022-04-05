@@ -26,13 +26,17 @@ library(ranger)
 #set working directory to file location
 setwd(dirname(getActiveDocumentContext()$path)) 
 
-# Load in our data sets
-hindcast_data <- readRDS("./data/train_subset__2022-04-05_11-10-01.RDS")
-test.data <- readRDS("./data/test_subset_2022-04-05_11-22-14.RDS")
+# Load in our data sets.
+# For the first experiment, let's use a single cell!
+hindcast_data <- readRDS("./data/train_subset__2022-04-05_11-10-01.RDS") #TODO: UPDATE
+test.data <- readRDS("./data/test_subset_2022-04-05_11-22-14.RDS") #AND THIS
 
 # generate mse for qm predictions (for later analysis)
 qm.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_qm_tmp_k)^2)
 
+
+# I removed the "bias" column. We can figure out if we're making an over-
+# or under-prediction downstream. Instead, I've predicted obx_tmp_k.x!
 # Predictor variables to use are: 
 # - x
 # - y
@@ -48,6 +52,7 @@ qm.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_qm_tmp_k)^2)
 #   Target variable:
 #   - obs_tmp_k.x
 
+# clean up data. We don't need these columns for our analysis
 training.data <- subset(hindcast_data, select = c(-forecast_timestamp,
                                                   -fcst_cell,
                                                   -obs_pr_m_day.x,
@@ -65,23 +70,25 @@ test.data <- subset(test.data, select = c(-forecast_timestamp,
 rm(hindcast_data)
 gc()
 
+# For now, PCA is de-selected!
 #Run a PCA, to explore relationship between variables. 
-
 # data_for_pca <- hindcast_data%>%
 #   dplyr::select(-unique_row_identifer)
-# 
 # pca1 <- prcomp(data_for_pca, scale = TRUE)
-# 
 # pca1 #see outputs of PCA
-# 
 # plot(pca1) #see how much variance is explained by first few PCs
-# 
 # plot(cumsum(pca1$sdev^2/4))
-
-
 # Take out correlated variables if found.  
-# To train our random forest, we will use all variables, both quantitative and qualitative, except for forecast_timestamp. We exclude forecast_timestamp as it is embedded in lead and forecast_target. This leaves us with the following 20 predictor variables: x, y, forecast_target, target_month, lead, fcst_tmp_k, elevation, lag1, lag2, lag3, lag4, lag5, lag6, lag7, lag8, lag9, lag10, lag11, lag12, fcst_pr_m_day.  
-# To optimize our random forest, we will need to pick the best hyperparameters including mtry (the number of variables for each bagged regression tree to consider), node size (the minimum size of a terminal node), and bootstrap resample size. We fix ntree (the number of trees in our random forest) to be 100 and optimize it later, as we know more trees in our forest will only increase the model's performance. We define error here as the out-of-bag mean squared error of the random forest's predictions.
+
+
+
+# To optimize our random forest, we will need to pick the best hyperparameters
+# including mtry (the number of variables for each bagged regression tree to
+# consider), node size (the minimum size of a terminal node), and bootstrap 
+# resample size. We fix ntree (the number of trees in our random forest) to be 
+# 100 and optimize it later, as we know more trees in our forest will only 
+# increase the model's performance. We define error here as the out-of-bag 
+# mean squared error of the random forest's predictions.
 
 metric.data <- data.frame(0,0,0,0)
 colnames(metric.data) <- c("i", "j", "k", "error")
@@ -90,9 +97,9 @@ count <- 0
 for (i in 1:20){ #range of mtry 
   for (j in c(10,100,1000,10000,100000)){ #range of nodesizes
     for (k in c(0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) { #range of sample fractions
-      rf <- ranger(obs_tmp_k.x ~ ., # use ranger function, much faster!
+      rf <- ranger(obs_tmp_k.x ~ ., # Used ranger function, much faster than randomforest
                    data = training.data,
-                   num.trees = 250, 
+                   num.trees = 250, # adjust this later
                    mtry = i, 
                    min.node.size = j,
                    sample.fraction = k,
@@ -117,20 +124,18 @@ for (i in 1:20){ #range of mtry
 # Rename columns in metric data
 colnames(metric.data) <- c("mtry","nodesize","samplefrac","error")
 
-#We save this run as a csv so we don't have to rerun this lengthy optimization when we knit.
-
+# Save the metric data here
 # First, grab and format the current time
 currentTime <- Sys.time()
 currentTime <- gsub(" ", "_", currentTime)
 currentTime <- gsub(":", "-", currentTime)
 filename <- paste0("./data/", "rf_parameters_", currentTime, ".RDS")
-
-# Save metric data
 print(paste0("saving as ", filename, "..."))
 saveRDS(metric.data, file = filename)
 
-#Print out optimal hyperparameters.
 
+
+#Print out optimal hyperparameters.
 metric.data1 <- metric.data
 metric.data1 <- metric.data1[2:nrow(metric.data1),] #remove 0,0,0,0 row
 which.min.error <- which.min(metric.data1$error)
