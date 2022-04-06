@@ -33,6 +33,7 @@ test.data <- readRDS("./data/test_subset_2022-04-05_22-31-48.RDS") #AND THIS
 
 # generate mse for qm predictions (for later analysis)
 qm.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_qm_tmp_k)^2)
+base.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_tmp_k)^2)
 
 
 
@@ -142,37 +143,61 @@ which.min.error <- which.min(metric.data1$error)
 best.parameters <- metric.data1[which.min.error,]
 print(paste("The most ideal hyperparameters are mtry = ", best.parameters$mtry,
             ", nodesize = ", best.parameters$nodesize,
-            ", bootstrap resample size = ", best.parameters$resamplesize,
-            ", with an error of", round(best.parameters$error)))
+            ", bootstrap resample size = ", best.parameters$samplefrac,
+            ", with an error of", best.parameters$error))
 
-#To optimize the random forest hyperparameters, all values of mtry were tested (1:20), where 20 is the number of possible input variables. For node size, a logarithmic scale sequence was tested. For the bootstrap resample size, we chose to test a range of values up to the maximum number of rows in the data set. I assumed a resample smaller than ~50% of my data set would not be effective. 
-#Next step: look at output of metric.data, see if we need to test more granlar bootstrap resample size, nodesize.
+# save these for use in the next step!
+best.mtry <- best.parameters$mtry
+best.nodesize <- best.parameters$nodesize
+best.samplefrac <- best.parameters$samplefrac
+
+# test for num-trees
+metric.data <- data.frame(0,0)
+colnames(metric.data) <- c("i","error")
+count <- 0
+
+for (i in seq(50, 200, by = 10)) {
+  count <- count + 1
+  cat(sprintf("\n\n\n MODEL %f of 20\n", count)) # 20 * 5 * 8 total models
+  
+  rf <- ranger(obs_tmp_k.x ~ ., # More efficient
+               data = train.data,
+               num.trees = i,
+               mtry = best.mtry, 
+               min.node.size = best.nodesize,
+               sample.fraction = best.samplefrac,
+               num.threads = 16) # 16/20 threads on Alex machine
+  
+  # Generate predictions on test data and find MSE
+  pred <- predict(rf, data = test.data)
+  error <- mean((test.data$obs_tmp_k.x-pred$predictions)^2)
+  
+  # Bind metric data to frame
+  metric.data <- rbind(metric.data, data.frame(i,error))
+}
+
+# Rename columns in metric data
+colnames(metric.data) <- c("num.trees","error")
+
+# Save the metric data here
+# First, grab and format the current time
+currentTime <- Sys.time()
+currentTime <- gsub(" ", "_", currentTime)
+currentTime <- gsub(":", "-", currentTime)
+filename <- paste0("./data/", "rf_tree_params_", currentTime, ".RDS")
+
+print(paste0("saving metric data as ", filename, "..."))
+saveRDS(metric.data, file = filename)
 
 
 
-#_________________________________________________________________________________
-#Now that we have our ideal mtry, node size, and resample size, all that's left is to choose ntree, or the number of trees. As noted earlier, more trees means less error, so let's see what a reasonable optimal ntree might be, considering run time. Let's compare the error from using ntree = 100 vs. ntree = 500.
-
-#try ntree = 100 (what was done above)
-#we know error = X, as was calculated above
-# system.time(rf100 <- randomForest(ActivePower ~ .,
-#                  data = before.wind.rf, mtry = 9, nodesize = 1,sampsize = 10636, ntree = 100))
-
-#Ntree = 100 took X minutes to run, with an error of X.
-
-#try ntree = 500
-# rf500 <- randomForest(ActivePower ~ .,
-#                  data = before.wind.rf, mtry = 9, nodesize = 1,sampsize = 10636, ntree = 500)
-# 
-# system.time(rf500 <- randomForest(ActivePower ~ .,
-#                  data = before.wind.rf, mtry = 9, nodesize = 1,sampsize = 10636, ntree = 500))
-
-# tail(rf500$mse,1)
-
-#Ntree = 500 took X minutes to run, with an error of X.
-
-
-
+#Print out optimal hyperparameters.
+metric.data1 <- metric.data
+metric.data1 <- metric.data1[2:nrow(metric.data1),] #remove 0,0,0,0 row
+which.min.error <- which.min(metric.data1$error)
+best.parameters <- metric.data1[which.min.error,]
+print(paste("Ideal number of trees = ", best.parameters$num.trees,
+            ", with an error of", best.parameters$error))
 
 
 
