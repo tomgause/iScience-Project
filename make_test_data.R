@@ -28,10 +28,9 @@ library(rstudioapi)
 setwd(dirname(getActiveDocumentContext()$path)) 
 
 #get relevant cells from train data
-train_cells <- readRDS("./data/train_subset__2022-04-05_11-10-01.RDS") %>%
-  select(fcst_cell)%>%
+train_cells <- readRDS("./data/train_subset__2022-04-06_01-10-09.RDS") %>%
+  dplyr::select(fcst_cell) %>%
   unique()
-gc()
 
 
 
@@ -102,8 +101,8 @@ for (i in (1:12)){
   mylag <- paste0("lag",i)
   hindcast_subset_temp_lags <- left_join(hindcast_subset_temp_lags, lag.data, by = 
                                            c("fcst_cell", setNames("date", mylag)))
-  hindcast_subset_temp_lags[mylag] <- hindcast_subset_temp_lags[,28] #grab observed temp column
-  hindcast_subset_temp_lags <- hindcast_subset_temp_lags[,1:26]
+  hindcast_subset_temp_lags[mylag] <- hindcast_subset_temp_lags[,27] #grab observed temp column
+  hindcast_subset_temp_lags <- hindcast_subset_temp_lags[,1:25]
 }
 
 
