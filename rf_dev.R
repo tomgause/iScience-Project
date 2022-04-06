@@ -28,9 +28,16 @@ setwd(dirname(getActiveDocumentContext()$path))
 
 # Load in our data sets.
 # For the first experiment, let's use a single cell!
-train <- readRDS("./data/train_subset__2022-04-05_23-40-27.RDS") #TODO: UPDATE
-test <- readRDS("./data/test_subset_2022-04-05_23-56-29.RDS") #AND THIS
+train <- readRDS("./data/train_subset__2022-04-06_01-10-09.RDS") #TODO: UPDATE
+test <- readRDS("./data/test_subset_2022-04-06_01-19-58.RDS") #AND THIS
 
+
+
+# Currently, this model is designed to train on individual pixels.
+# The experiment below will reveal approximately how often the rf performs
+# better than the qm method by testing on 200 data points. We'll also save
+# optimal parameters along the way so we can quickly reproduce results in
+# the downstream (assuming any models perform well...)
 sample.cells <- train.data %>%
   dplyr::select(fcst_cell) %>%
   unique()
@@ -174,6 +181,7 @@ for (i in sample.cells[,1]) {
                                                        best.mtry,
                                                        best.nodesize,
                                                        best.samplefrac))
+  gc()
 }
 saveRDS(min.cell.errors, "./data/error_200_points.RDS")
 

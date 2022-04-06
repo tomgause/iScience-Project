@@ -90,6 +90,8 @@ pixel_subset <- all_pixels[sample(nrow(all_pixels), 200), ]
 hindcast_subset <- hindcast_all%>%
   filter(fcst_cell %in% pixel_subset)
 
+gc()
+rm(hindcast_all)
 
 
 ########################################
@@ -120,6 +122,8 @@ hindcast_subset <- hindcast_subset%>%
 lag.data <- hindcast_subset%>%
   dplyr::select(forecast_target,obs_pr_m_day,obs_tmp_k, fcst_cell)%>%
   unique()
+
+gc()
 
 colnames(lag.data)[1] <- "date"
 
