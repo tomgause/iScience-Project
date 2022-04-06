@@ -29,7 +29,7 @@ setwd(dirname(getActiveDocumentContext()$path))
 # Load in our data sets.
 # For the first experiment, let's use a single cell!
 train.data <- readRDS("./data/train_subset__2022-04-05_11-10-01.RDS") #TODO: UPDATE
-test.data <- readRDS("./data/test_subset_2022-04-05_11-22-14.RDS") #AND THIS
+test.data <- readRDS("./data/test_subset_2022-04-05_22-31-48.RDS") #AND THIS
 
 # generate mse for qm predictions (for later analysis)
 qm.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_qm_tmp_k)^2)
@@ -57,14 +57,17 @@ qm.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_qm_tmp_k)^2)
 train.data <- subset(train.data, select = c(-forecast_timestamp,
                                                   -fcst_cell,
                                                   -obs_pr_m_day.x,
-                                                  -forecast_target))
+                                                  -forecast_target,
+                                                  -obs_cell))
+
+train.data <- na.omit(train.data)
 test.data <- subset(test.data, select = c(-forecast_timestamp,
                                           -fcst_cell,
                                           -obs_pr_m_day.x,
                                           -forecast_target,
                                           -fcst_qm_tmp_k,
-                                          -fcst_qm_pr_m_day,
-                                          -obs_cell))
+                                          -fcst_qm_pr_m_day))
+test.data <- na.omit(test.data)
 
 # clean up memory!
 gc()
@@ -97,7 +100,7 @@ for (i in 1:20){ #range of mtry
     for (k in c(0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) { #range of sample fractions
       
       count <- count + 1
-      print(sprintf("\n\n\n MODEL %f of 800", count)) # 20 * 5 * 8 total models
+      cat(sprintf("\n\n\n MODEL %f of 800\n", count)) # 20 * 5 * 8 total models
       
       rf <- ranger(obs_tmp_k.x ~ ., # More efficient
                    data = train.data,
@@ -126,7 +129,8 @@ currentTime <- Sys.time()
 currentTime <- gsub(" ", "_", currentTime)
 currentTime <- gsub(":", "-", currentTime)
 filename <- paste0("./data/", "rf_parameters_", currentTime, ".RDS")
-print(paste0("saving as ", filename, "..."))
+
+print(paste0("saving metric data as ", filename, "..."))
 saveRDS(metric.data, file = filename)
 
 
