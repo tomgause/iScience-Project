@@ -28,10 +28,9 @@ library(rstudioapi)
 setwd(dirname(getActiveDocumentContext()$path)) 
 
 #get relevant cells from train data
-train_cells <- readRDS("./data/train_subset__2022-04-05_11-10-01.RDS") %>%
-  select(fcst_cell)%>%
+train_cells <- readRDS("./data/train_subset__2022-04-05_23-40-27.RDS") %>%
+  dplyr::select(fcst_cell) %>%
   unique()
-gc()
 
 
 

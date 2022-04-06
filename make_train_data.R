@@ -85,7 +85,7 @@ all_pixels <- sample_data%>%
   dplyr::select(fcst_cell)%>%
   unique()
 
-pixel_subset <- all_pixels[sample(nrow(all_pixels), 1), ]
+pixel_subset <- all_pixels[sample(nrow(all_pixels), 200), ]
 
 hindcast_subset <- hindcast_all%>%
   filter(fcst_cell %in% pixel_subset)
