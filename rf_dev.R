@@ -38,13 +38,13 @@ test <- readRDS("./data/test_subset_2022-04-06_01-19-58.RDS") #AND THIS
 # better than the qm method by testing on 200 data points. We'll also save
 # optimal parameters along the way so we can quickly reproduce results in
 # the downstream (assuming any models perform well...)
-sample.cells <- train.data %>%
+sample.cells <- train %>%
   dplyr::select(fcst_cell) %>%
   unique()
 
 min.cell.errors <- data.frame(0,0,0,0,0,0)
-colnames(min.cell.errors) <- c("rf.mse", "qm.mse", "base.mse,
-                               best.mtry, best.nodesize, best.samplefrac")
+colnames(min.cell.errors) <- c("rf.mse", "qm.mse", "base.mse",
+                               "best.mtry", "best.nodesize", "best.samplefrac")
 
 for (i in sample.cells[,1]) {
   cell <- i
