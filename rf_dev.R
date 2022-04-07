@@ -1,6 +1,6 @@
 ### rf development scripts
 # Tom Gause
-# 4/5/2022
+# 4/7/2022
 
 library(data.table)
 library(rvest)
@@ -58,9 +58,11 @@ for (i in sample.cells[,1]) {
   # generate mse for qm predictions (for later analysis)
   qm.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_qm_tmp_k)^2)
   base.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_tmp_k)^2)
+  #also include naive method mean((test.data$obs_tmp_k.x - test.data$HISTORICALGUESS)^2))
+  #(need to generate historical method data first)
   
   # I removed the "bias" column. We can figure out if we're making an over-
-  # or under-prediction downstream. Instead, I've predicted obx_tmp_k.x!
+  # or under-prediction downstream. Instead, I've predicted obs_tmp_k.x!
   # Predictor variables to use are: 
   # - x
   # - y
@@ -80,14 +82,12 @@ for (i in sample.cells[,1]) {
   train.data <- subset(train.data, select = c(-forecast_timestamp,
                                               -fcst_cell,
                                               -obs_pr_m_day.x,
-                                              -forecast_target,
                                               -obs_cell))
   
   train.data <- na.omit(train.data)
   test.data <- subset(test.data, select = c(-forecast_timestamp,
                                             -fcst_cell,
                                             -obs_pr_m_day.x,
-                                            -forecast_target,
                                             -fcst_qm_tmp_k,
                                             -fcst_qm_pr_m_day))
   test.data <- na.omit(test.data)
@@ -118,7 +118,7 @@ for (i in sample.cells[,1]) {
   colnames(metric.data) <- c("i", "j", "k", "error")
   count <- 0
   
-  for (i in 15:18){ #range of mtry 
+  for (i in 15:18){ #range of mtry, down to 18 as we are not using x,y
     for (j in c(10000, 15000, 20000)){ #range of nodesizes
       for (k in c(0.8)) { #range of sample fractions
         
@@ -131,7 +131,8 @@ for (i in sample.cells[,1]) {
                      mtry = i, 
                      min.node.size = j,
                      sample.fraction = k,
-                     num.threads = 16) # 16/20 threads on Alex machine
+                     num.threads = 16, # 16/20 threads on Alex machine
+                     oob.error = TRUE) # use OOB error for cross validation
         
         # Generate predictions on test data and find MSE
         pred <- predict(rf, data = test.data)
@@ -232,7 +233,6 @@ which.min.error <- which.min(metric.data1$error)
 best.parameters <- metric.data1[which.min.error,]
 print(paste("Ideal number of trees = ", best.parameters$num.trees,
             ", with an error of", best.parameters$error))
-
 
 
 

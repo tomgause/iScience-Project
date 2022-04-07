@@ -1,7 +1,7 @@
 ---
 title: "Random Forest Temperature"
 author: "Acadia Hegedus, Katelyn Mei, and Tom Gaus"
-date: "3/11/2022"
+date: "4/7/2022"
 output: html_document
 ---
 
@@ -30,20 +30,22 @@ library(caret)
 library(dendextend)
 ```
 
-Load in our data set. 
+Load in our data sets. 
 ```{r}
-hindcast_data <- readRDS("./data/hindcast_all.rds")
-hindcast_data <- hindcast_data %>%
-  mutate(unique_row_identifer = rownames(hindcast_data)) ##maybe delete these lines and put them in the data processing file
-rownames(hindcast_data) <- seq(1,nrow(hindcast_data),1)
-```
+training.data <- readRDS("./data/train_subset__2022-04-06_01-10-09.RDS")
+testing.data <- readRDS("./data/test_subset_2022-04-06_01-19-58.RDS")
 
-Create our target variable: temperature bias
-A positive bias indicates the forecast underpredicted.
-A negative bias indicates the forecast overpredicted.
-```{r}
-hindcast_data <- hindcast_data %>%
-  mutate(bias_tmp = obs_tmp_k-fcst_tmp_k)
+training.data <- na.omit(training.data)
+
+testing.data <- na.omit(testing.data)
+
+training.data <- training.data%>%
+  dplyr::select(-obs_cell)
+
+testing.data2 <- testing.data%>%
+  dplyr::select(-fcst_qm_pr_m_day,-fcst_qm_tmp_k)
+
+all.data <- rbind(training.data, testing.data2)
 ```
 
 
@@ -61,27 +63,14 @@ Predictor variables to use are:
 ***lag1 : observed temperature one month ago***
 
 Target variable:
-- bias_tmp
-
-Divide into training and testing data set. Total data is ~ 1 billion rows. 
-Train on: forecast_targets 1984-01 to 2006-12
-Test on: forecast_targets 2007-01 to END
-
-```{r}
-training.data <- hindcast_data %>% 
-  filter(forecast_target < "2007-01-01")%>%
-  filter(forecast_target >= "1984-01-01")
-
-testing.data <- hindcast_data%>%
-  filter(forecast_target >= "2007-01-01")
-```
+- obs_tmp_k
 
 Run a PCA, to explore relationship between variables. 
 ```{r}
-data_for_pca <- hindcast_data%>%
-  dplyr::select(-unique_row_identifer)
+data.for.pca <- all.data%>%
+  dplyr::select(-fcst_cell,-obs_tmp_k.x,-obs_pr_m_day.x, -forecast_timestamp, -forecast_target)
 
-pca1 <- prcomp(data_for_pca, scale = TRUE)
+pca1 <- prcomp(data.for.pca, scale = TRUE)
 
 pca1 #see outputs of PCA
 
@@ -91,8 +80,10 @@ plot(cumsum(pca1$sdev^2/4))
 
 ```
 
+After running PCA only with variables we may use as predictor variables in our model (removing obs_cell, fcst_cell, obs_tmp_k, obs_pr_m_day), along with removing  the non-numeric variables (forecast_timestamp and forecast_target), no coefficients of PC1 are exactly the same. So, it looks like no variables are so highly correlated that they need to be removed. 
 
-Take out correlated variables if found.  
+It looks like the first 5 PCs can explain the majority of the variance in the data. Should we replace our training inputs to these? Reducing the number of dimensions in the data seems very useful. 
+
 
 To train our random forest, we will use all variables, both quantitative and qualitative, except for forecast_timestamp. We exclude forecast_timestamp as it is embedded in lead and forecast_target. This leaves us with the following 20 predictor variables: x, y, forecast_target, target_month, lead, fcst_tmp_k, elevation, lag1, lag2, lag3, lag4, lag5, lag6, lag7, lag8, lag9, lag10, lag11, lag12, fcst_pr_m_day.  
 
@@ -171,6 +162,10 @@ Ntree = 100 took X minutes to run, with an error of X.
 ```
 
 Ntree = 500 took X minutes to run, with an error of X.
+
+
+
+
 
 
 
