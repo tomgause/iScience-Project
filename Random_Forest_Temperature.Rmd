@@ -28,6 +28,7 @@ library(ipred)
 library(randomForest)
 library(caret)
 library(dendextend)
+library(ranger)
 ```
 
 Load in our data sets. 
@@ -82,8 +83,67 @@ plot(cumsum(pca1$sdev^2/4))
 
 After running PCA only with variables we may use as predictor variables in our model (removing obs_cell, fcst_cell, obs_tmp_k, obs_pr_m_day), along with removing  the non-numeric variables (forecast_timestamp and forecast_target), no coefficients of PC1 are exactly the same. So, it looks like no variables are so highly correlated that they need to be removed. 
 
-It looks like the first 5 PCs can explain the majority of the variance in the data. Should we replace our training inputs to these? Reducing the number of dimensions in the data seems very useful. 
+It looks like the first 3-5 PCs can explain the majority of the variance in the data. Let's try training a random forest with the first 3 principal components and compare the run time to use 4, 5, and all 19. First, we must generate PCs on the training data only. 
 
+```{r}
+data.for.pca <- training.data%>%
+  dplyr::select(-fcst_cell,-obs_tmp_k.x,-obs_pr_m_day.x, -forecast_timestamp, -forecast_target)
+
+pca2 <- prcomp(data.for.pca, scale = TRUE)
+
+pca2 #see outputs of PCA
+
+plot(pca2) #see how much variance is explained by first few PCs
+
+plot(cumsum(pca2$sdev^2/4))
+```
+
+
+```{r}
+pcs <- as.data.frame(pca2$x)
+```
+
+
+Train with PC1-PC3. Result: took 3 minutes.
+```{r}
+pcs3 <- pcs%>%
+  dplyr::select(PC1, PC2, PC3)%>%
+  mutate(obs_tmp_k = training.data$obs_tmp_k.x)
+
+system.time(rf.pcs3 <- ranger(obs_tmp_k ~ ., 
+               data = pcs3,
+               num.trees = 10,
+               mtry = 3, 
+               min.node.size = 100,
+               sample.fraction = 0.8,
+               num.threads = 16))
+```
+
+Train with PC1-PC4
+```{r}
+pcs4 <- pcs%>%
+  dplyr::select(PC1, PC2, PC3, PC4)%>%
+  mutate(obs_tmp_k = training.data$obs_tmp_k.x)
+
+system.time(rf.pcs3 <- ranger(obs_tmp_k ~ ., 
+               data = pcs3,
+               num.trees = 100,
+               mtry = 3, 
+               min.node.size = 100,
+               sample.fraction = 0.8,
+               num.threads = 16))
+```
+
+Train with all variables
+```{r}
+system.time(rf.20 <- ranger(obs_tmp_k.x ~ x + y + forecast_target + target_month + lead + fcst_tmp_k + elevation + lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7 + lag8 + lag9 + lag10 + lag11 + lag12 + fcst_pr_m_day, 
+               data = training.data,
+               num.trees = 100,
+               mtry = 3, 
+               min.node.size = 100,
+               sample.fraction = 0.8,
+               num.threads = 16))
+```
 
 To train our random forest, we will use all variables, both quantitative and qualitative, except for forecast_timestamp. We exclude forecast_timestamp as it is embedded in lead and forecast_target. This leaves us with the following 20 predictor variables: x, y, forecast_target, target_month, lead, fcst_tmp_k, elevation, lag1, lag2, lag3, lag4, lag5, lag6, lag7, lag8, lag9, lag10, lag11, lag12, fcst_pr_m_day.  
 
@@ -162,8 +222,6 @@ Ntree = 100 took X minutes to run, with an error of X.
 ```
 
 Ntree = 500 took X minutes to run, with an error of X.
-
-
 
 
 
