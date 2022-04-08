@@ -125,6 +125,10 @@ pcs5 <- pcs%>%
   dplyr::select(PC1, PC2, PC3, PC4, PC5)%>%
   mutate(obs_tmp_k = training.data$obs_tmp_k.x)
 
+#ARE THESE COEFFICIENTS OR ACTUAL TRANSFORMED DATA?
+
+#SAVE PCs5
+
 system.time(rf.pcs5 <- ranger(obs_tmp_k ~ ., 
                data = pcs5,
                num.trees = 10,

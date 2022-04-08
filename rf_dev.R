@@ -118,9 +118,9 @@ for (i in sample.cells[,1]) {
   colnames(metric.data) <- c("i", "j", "k", "error")
   count <- 0
   
-  for (i in 15:18){ #range of mtry, down to 18 as we are not using x,y
-    for (j in c(10000, 15000, 20000)){ #range of nodesizes
-      for (k in c(0.8)) { #range of sample fractions
+  for (i in 1:18){ #range of mtry, down to 18 as we are not using x,y
+    for (j in c(10,100,1000,10000,100000,1000000)){ #range of nodesizes
+      for (k in c(0.5,0.6,0.7,0.8,0.9,1)) { #range of sample fractions
         
         count <- count + 1
         cat(sprintf("\n\n MODEL %f\n", count))
@@ -134,9 +134,8 @@ for (i in sample.cells[,1]) {
                      num.threads = 16, # 16/20 threads on Alex machine
                      oob.error = TRUE) # use OOB error for cross validation
         
-        # Generate predictions on test data and find MSE
-        pred <- predict(rf, data = test.data)
-        error <- mean((test.data$obs_tmp_k.x-pred$predictions)^2)
+        # Get OOB
+        error <- rf$prediction.error
         cat(sprintf("ERROR: %f\n", error))
         
         # Bind metric data to frame
@@ -233,6 +232,82 @@ which.min.error <- which.min(metric.data1$error)
 best.parameters <- metric.data1[which.min.error,]
 print(paste("Ideal number of trees = ", best.parameters$num.trees,
             ", with an error of", best.parameters$error))
+
+
+#### TRAIN RF WITH FIRST 5 PRINCIPAL COMPONENTS
+
+#read in pcs5 data
+pcs5 <- readRDS("./data/PC5_transformed_data.RDS")
+
+metric.data <- data.frame(0,0,0,0)
+colnames(metric.data) <- c("i", "j", "k", "error")
+count <- 0
+
+for (i in 1:5){ #range of mtry, down to 5 predictor variables possible
+  for (j in c(10,100,1000,10000,100000,1000000)){ #range of nodesizes
+    for (k in c(0.5,0.6,0.7,0.8,0.9,1)) { #range of sample fractions
+      
+      count <- count + 1
+      cat(sprintf("\n\n MODEL %f\n", count))
+      
+      rf <- ranger(obs_tmp_k ~ ., # More efficient
+                   data = pcs5,
+                   num.trees = 110, # Adjust this later
+                   mtry = i, 
+                   min.node.size = j,
+                   sample.fraction = k,
+                   num.threads = 16, # 16/20 threads on Alex machine
+                   oob.error = TRUE) # use OOB error for cross validation
+      
+      # Get OOB
+      error <- rf$prediction.error
+      cat(sprintf("ERROR: %f\n", error))
+      
+      # Bind metric data to frame
+      metric.data <- rbind(metric.data, data.frame(i,j,k,error))
+    }
+  }
+}
+
+# Rename columns in metric data
+colnames(metric.data) <- c("mtry","nodesize","samplefrac","error")
+
+# Save the metric data here
+# First, grab and format the current time
+currentTime <- Sys.time()
+currentTime <- gsub(" ", "_", currentTime)
+currentTime <- gsub(":", "-", currentTime)
+filename <- paste0("./data/", "rf_pc_parameters_", currentTime, ".RDS")
+
+# Don't need to save in the loop like this
+#print(paste0("saving metric data as ", filename, "..."))
+#saveRDS(metric.data, file = filename)
+
+
+#Print out optimal hyperparameters.
+metric.data1 <- metric.data
+metric.data1 <- metric.data1[2:nrow(metric.data1),] #remove 0,0,0,0 row
+which.min.error <- which.min(metric.data1$error)
+best.parameters <- metric.data1[which.min.error,]
+print(paste("The most ideal hyperparameters are mtry = ", best.parameters$mtry,
+            ", nodesize = ", best.parameters$nodesize,
+            ", bootstrap resample size = ", best.parameters$samplefrac,
+            ", with an error of", best.parameters$error,
+            ", vs qm error of", qm.mse))
+
+# save these for use in the next step!
+best.mtry <- best.parameters$mtry
+best.nodesize <- best.parameters$nodesize
+best.samplefrac <- best.parameters$samplefrac
+
+rf.mse <- best.parameters$error
+min.cell.errors <- rbind(min.cell.errors, data.frame(rf.mse, qm.mse, base.mse,
+                                                     best.mtry,
+                                                     best.nodesize,
+                                                     best.samplefrac))
+gc()
+
+saveRDS(min.cell.errors, "./data/error_pcs_RF.RDS")
 
 
 
