@@ -242,6 +242,36 @@ best.parameters <- metric.data1[which.min.error,]
 print(paste("Ideal number of trees = ", best.parameters$num.trees,
             ", with an error of", best.parameters$error))
 
+### Plot Variable Importance for 10 pixels
+my.pixel <- sample.cells[5,1]
+best.hyperparameters <- readRDS(file.choose())
+best.hyperparameters <- best.hyperparameters[2,]
+train.data <- train%>%
+  filter(fcst_cell == my.pixel)
+train.data <- subset(train.data, select = c(-forecast_timestamp,
+                                            -fcst_cell,
+                                            -obs_pr_m_day.x,
+                                            -obs_cell))
+train.data <- na.omit(train.data)
+my.rf <- ranger(obs_tmp_k.x ~ ., # More efficient
+                data = train.data,
+                num.trees = 110,
+                mtry = best.hyperparameters$best.mtry, 
+                min.node.size = best.hyperparameters$best.nodesize,
+                sample.fraction = best.hyperparameters$best.samplefrac,
+                num.threads = 16,
+                importance = 'impurity')
+#View VarImpPlot
+plotting.data <- as.data.frame(my.rf$variable.importance)
+plotting.data <- plotting.data%>%
+  mutate(variable = rownames(plotting.data))
+
+plotting.data%>%
+  ggplot()+
+  geom_point(mapping = aes(x = variable, y = my.rf$variable.importance))+
+  coord_flip()
+
+
 
 #### TRAIN RF WITH FIRST 5 PRINCIPAL COMPONENTS
 
