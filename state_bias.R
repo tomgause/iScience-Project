@@ -41,11 +41,13 @@ hindcast.all <- dplyr::bind_rows(tmpL)
 rm(tmpL)
 rm(tmp)
 
-# Take 100 samples from each cell
+# Reduce dataset size by 90%
+hindcast.all <- sample_frac(hindcast.all, size = 0.1)
+gc()
 cell.samples <- hindcast.all %>%
   group_by(fcst_cell) %>%
   dplyr::slice_sample(n=100)
-rm(hindcast.all)
+
 
 ## Source:  https://stackoverflow.com/questions/8751497/latitude-longitude-coordinates-to-state-code-in-r
 ## pointsDF: A data.frame whose first column contains longitudes and
@@ -73,15 +75,22 @@ lonlat_to_state <- function(pointsDF,
 }
 
 # Get cells of all samples
-cell.samples.states <- cell.samples %>%
-  lonlat_to_state(dplyr::select(x,y))
+cell.samples.states <- lonlat_to_state(cell.samples[,c('x','y')])
+cell.samples.states <- data.frame(state = cell.samples.states)
 
+# Don't forget to ungroup...
+cell.samples <- cell.samples %>% ungroup()
 # Mutate
 cell.samples <- cell.samples %>%
-  mutate(state = cell.samples.states,
-         bias = obs_tmp_k - fcst_tmp_k) #TODO: get actual variable names
+  mutate(state = cell.samples.states$state,
+         bias = abs(obs_tmp_k - fcst_tmp_k)) #TODO: get actual variable names
 
 # Summarize data
-cell.samples %>%
+f <- cell.samples %>%
   dplyr::group_by(state) %>%
   summarize(mean = mean(bias), n = n())
+view(f)
+
+sp <- ggplot(f, aes(x, y)) +
+  geom_point(aes(color = mean(bias))
+            
