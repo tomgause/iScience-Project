@@ -1,6 +1,7 @@
 ### rf development scripts
 # Tom Gause
-# 4/7/2022
+# Acadia Hegedus
+# 4/8/2022
 
 library(data.table)
 library(rvest)
@@ -29,6 +30,7 @@ setwd(dirname(getActiveDocumentContext()$path))
 # Load in our data sets.
 # For the first experiment, let's use a single cell!
 train <- readRDS("./data/train_subset__2022-04-06_01-10-09.RDS") #TODO: UPDATE
+
 test <- readRDS("./data/test_subset_2022-04-06_01-19-58.RDS") #AND THIS
 
 
@@ -46,20 +48,12 @@ min.cell.errors <- data.frame(0,0,0,0,0,0)
 colnames(min.cell.errors) <- c("rf.mse", "qm.mse", "base.mse",
                                "best.mtry", "best.nodesize", "best.samplefrac")
 
-for (i in sample.cells[,1]) {
+for (i in sample.cells[1:10,1]) { #only look at 10 pixels
   cell <- i
   
   # Select a single point
   train.data <- train %>%
     filter(fcst_cell == cell)
-  test.data <- test %>%
-    filter(fcst_cell == cell)
-  
-  # generate mse for qm predictions (for later analysis)
-  qm.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_qm_tmp_k)^2)
-  base.mse <- mean((test.data$obs_tmp_k.x - test.data$fcst_tmp_k)^2)
-  #also include naive method mean((test.data$obs_tmp_k.x - test.data$HISTORICALGUESS)^2))
-  #(need to generate historical method data first)
   
   # I removed the "bias" column. We can figure out if we're making an over-
   # or under-prediction downstream. Instead, I've predicted obs_tmp_k.x!
@@ -85,27 +79,8 @@ for (i in sample.cells[,1]) {
                                               -obs_cell))
   
   train.data <- na.omit(train.data)
-  test.data <- subset(test.data, select = c(-forecast_timestamp,
-                                            -fcst_cell,
-                                            -obs_pr_m_day.x,
-                                            -fcst_qm_tmp_k,
-                                            -fcst_qm_pr_m_day))
-  test.data <- na.omit(test.data)
-  
   # clean up memory!
   gc()
-  
-  # For now, PCA is de-selected!
-  #Run a PCA, to explore relationship between variables. 
-  # data_for_pca <- hindcast_data%>%
-  #   dplyr::select(-unique_row_identifer)
-  # pca1 <- prcomp(data_for_pca, scale = TRUE)
-  # pca1 #see outputs of PCA
-  # plot(pca1) #see how much variance is explained by first few PCs
-  # plot(cumsum(pca1$sdev^2/4))
-  # Take out correlated variables if found.  
-  
-  
   
   # To optimize our random forest, we will need to pick the best hyperparameters
   # including mtry (the number of variables for each bagged regression tree to
@@ -118,9 +93,20 @@ for (i in sample.cells[,1]) {
   colnames(metric.data) <- c("i", "j", "k", "error")
   count <- 0
   
-  for (i in 1:18){ #range of mtry, down to 18 as we are not using x,y
-    for (j in c(10,100,1000,10000,100000,1000000)){ #range of nodesizes
-      for (k in c(0.5,0.6,0.7,0.8,0.9,1)) { #range of sample fractions
+  #First trial run
+  # for (i in 1:18){ #range of mtry, down to 18 as we are not using x,y
+  #   for (j in c(10,100,1000,10000,100000,1000000)){ #range of nodesizes
+  #     for (k in c(0.5,0.6,0.7,0.8,0.9,1)) { #range of sample fractions
+  # these results are saved in error_200_points
+  
+  # for (i in 14:18){ #range of mtry, down to 18 as we are not using x,y
+  #   for (j in c(10,20,50,80)){ #range of nodesizes
+  #     for (k in c(0.75,0.8,0.85,0.90,0.95,1)) { #ra
+  # these results are saved in error_200_points2 
+  
+  for (i in 14:18){ #range of mtry, down to 18 as we are not using x,y
+    for (j in c(10,20,50,80)){ #range of nodesizes
+      for (k in c(0.75,0.8,0.85,0.90,0.95,1)) { #range of sample fractions
         
         count <- count + 1
         cat(sprintf("\n\n MODEL %f\n", count))
@@ -184,6 +170,29 @@ for (i in sample.cells[,1]) {
   gc()
 }
 saveRDS(min.cell.errors, "./data/error_200_points.RDS")
+
+
+####Test on test data
+
+# Select a single point
+test.data <- test %>%
+  filter(fcst_cell == sample.cells[1:10,1])
+
+test.data <- na.omit(test.data)
+
+rf <- ranger(obs_tmp_k.x ~ ., # More efficient
+             data = train.data,
+             num.trees = 110, # Adjust this later
+             mtry = min.cell.errors[11,"best.mtry"], 
+             min.node.size = min.cell.errors[11,"best.nodesize"],
+             sample.fraction = min.cell.errors[11,"best.samplefrac"],
+             num.threads = 16, # 16/20 threads on Alex machine
+             oob.error = TRUE)
+
+pred <- predict(rf, data = test.data)
+
+error <- mean((test.data$obs_tmp_k.x - pred$predictions)^2)
+#error = 33
 
 # test for num-trees
 metric.data <- data.frame(0,0)
