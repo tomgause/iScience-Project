@@ -1,7 +1,6 @@
 ### rf development scripts
 # Tom Gause
-# Acadia Hegedus
-# 4/8/2022
+# 4/11/2022
 
 library(data.table)
 library(rvest)
@@ -47,7 +46,7 @@ min.cell.errors <- data.frame(0,0,0,0,0,0)
 colnames(min.cell.errors) <- c("rf.mse", "qm.mse", "base.mse",
                                "best.mtry", "best.nodesize", "best.samplefrac")
 
-train.data <- subset(train.data, select = c(-forecast_timestamp,
+train.data <- subset(train, select = c(-forecast_timestamp,
                                             -fcst_cell,
                                             -obs_pr_m_day.x,
                                             -obs_cell,
@@ -61,12 +60,14 @@ train.data <- subset(train.data, select = c(-forecast_timestamp,
                                             -lag8,
                                             -lag9,
                                             -lag10,
-                                            -lag11))
+                                            -lag11,
+                                            -lag12))
 # omit all rows that contain an NA
 train.data <- na.omit(train.data)
 # clean up memory!
 gc()
-  
+ncol(train.data)
+
 # To optimize our random forest, we will need to pick the best hyperparameters
 # including mtry (the number of variables for each bagged regression tree to
 # consider), node size (the minimum size of a terminal node), and bootstrap 
@@ -78,8 +79,8 @@ metric.data <- data.frame(0,0,0,0)
 colnames(metric.data) <- c("i", "j", "k", "error")
 count <- 0
 
-for (i in 9){ #range of mtry, down to 18 as we are not using x,y
-  for (j in c(10,100,1000,10000,100000)){ #range of nodesizes
+for (i in 6){ #range of mtry, down to 18 as we are not using x,y
+  for (j in c(10000)){ #range of nodesizes
     for (k in c(0.8)) { #range of sample fractions
       
       count <- count + 1
@@ -87,11 +88,11 @@ for (i in 9){ #range of mtry, down to 18 as we are not using x,y
       
       rf <- ranger(obs_tmp_k.x ~ ., # More efficient
                    data = train.data,
-                   num.trees = 110, # Adjust this later
+                   num.trees = 100, # Adjust this later
                    mtry = i, 
                    min.node.size = j,
                    sample.fraction = k,
-                   num.threads = 8, # 16/20 threads on Alex machine
+                   num.threads = 18, # 20 threads on Alex machine
                    oob.error = TRUE) # use OOB error for cross validation
       
       # Get OOB

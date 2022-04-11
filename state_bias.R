@@ -91,6 +91,5 @@ f <- cell.samples %>%
   summarize(mean = mean(bias), n = n())
 view(f)
 
-sp <- ggplot(f, aes(x, y)) +
-  geom_point(aes(color = mean(bias))
-            
+cell.states <- cell.samples %>%
+  group_by(fcst_cell)
