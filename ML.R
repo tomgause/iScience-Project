@@ -2,17 +2,26 @@
 # Tom Gause
 # 4/11/2022
 
+# LSTM experiment inspired by:
+# https://www.r-bloggers.com/2018/04/time-series-deep-learning-forecasting-sunspots-with-keras-stateful-lstm-in-r/
+
+# Core Tidyverse
 library(tidyverse)
-library(lubridate)
-library(zoo)
-library(dplyr)
-library(sf)
-library(terra)
-library(rstudioapi)
-library(mgcv)
-library(ggplot2)
+library(glue)
+library(forcats)
+# Time Series
+library(timetk)
+library(tidyquant)
+library(tibbletime)
+# Visualization
+library(cowplot)
+# Preprocessing
+library(recipes)
+# Sampling / Accuracy
+library(rsample)
+library(yardstick) 
+# Modeling
 library(keras)
-library(tensorflow)
 
 use_condaenv("keras-tf", required = T)
 
