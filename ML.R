@@ -25,48 +25,52 @@ library(keras)
 
 # Make all the data
 train <- readRDS("./data/hindcast_subset_vermont_unedited.RDS")
-#test <- readRDS("./data/test_vermont_2022-04-11_21-01-43.RDS")
+test <- readRDS("./data/test_vermont_2022-04-11_21-01-43.RDS")
 
 train <- train[order(train$forecast_target),]
+test <- test[order(test$forecast_target),]
 
 train.filtered <- train %>%
   select(c(fcst_tmp_k, obs_tmp_k, forecast_target, lead, fcst_cell)) %>%
   filter(lead == 1,
-         fcst_cell == 259627,
-         forecast_target <= ym(200501)) %>%
+         fcst_cell == 259627) %>%
   mutate(bias = fcst_tmp_k - obs_tmp_k,
          index = as_date(forecast_target)) %>%
   select(c(bias, index)) %>%
   as_tbl_time(index = index)
+train.months <- length(unique(train.filtered$index)) # 335
+unique(train.filtered$index) %>% tail(10)
 
-test.filtered <- train %>%
+test.filtered <- test %>%
   filter(lead == 1,
-         fcst_cell == 259627,
-         forecast_target > ym(200801)) %>%
-  tk_tbl() %>%
-  mutate(bias = fcst_tmp_k - obs_tmp_k) %>%
-  select(c(bias, fcst_tmp_k, forecast_target, target_month)) %>%
-  as_tbl_time(index = forecast_target)
+         fcst_cell == 259627) %>%
+  mutate(bias = fcst_tmp_k - obs_tmp_k.x,
+         index = as_date(forecast_target)) %>%
+  select(c(bias, index)) %>%
+  as_tbl_time(index = index)
+test.months <- length(unique(test.filtered$index)) # 116
+unique(test.filtered$index) %>% head(10)
 
-train.X <- train.filtered %>% select(-bias)
-train.y <- train.filtered %>% select(bias)
-test.X <- test.filtered %>% select(-bias)
-test.y <- test.filtered %>% select(bias)
+
+# train.X <- train.filtered %>% select(-bias)
+# train.y <- train.filtered %>% select(bias)
+# test.X <- test.filtered %>% select(-bias)
+# test.y <- test.filtered %>% select(bias)
 
 
 
 ############################################################################
 # Let's explore the data a little bit, get an idea of what things look like!
 
-p1 <- train.filtered %>%
+p1 <- data %>%
   ggplot(aes(index, bias)) +
   geom_point(color = palette_light()[[1]], alpha = 0.5) +
   theme_tq() +
   labs(
-    title = "1982-2008"
+    title = "1982-2010"
   )
 
-p2 <- train.filtered %>%
+p2 <- data %>%
   filter_time("start" ~ "1986") %>%
   ggplot(aes(index, bias)) +
   geom_line(color = palette_light()[[1]], alpha = 0.5) +
@@ -108,20 +112,28 @@ tidy_acf <- function(data, value, lags = 0:20) {
   return(ret)
 }
 
-max_lag <- 12 * 50
-# Let's plot our values.
+# Get con
+alpha <- 0.95
+max_lag <- 12 * 27
+conf.lims <- c(-1,1)*qnorm((1 + alpha)/2)/sqrt(max_lag)
+
+# Let's plot our values with confidence
 train.filtered %>%
   tidy_acf("bias", lags = 0:max_lag) %>%
   ggplot(aes(lag, acf)) +
   geom_segment(aes(xend = lag, yend = 0), color = palette_light()[[1]]) +
+  geom_hline(yintercept = conf.lims[2], size = 1, color = palette_light()[[5]]) + 
+  geom_hline(yintercept = conf.lims[1], size = 1, color = palette_light()[[5]]) +
   geom_vline(xintercept = 120, size = 3, color = palette_light()[[2]]) +
   annotate("text", label = "10 Year Mark", x = 130, y = 0.8, 
            color = palette_light()[[2]], size = 6, hjust = 0) +
+  annotate("text", label = "Confidence", x = 210, y = 0.18, 
+           color = palette_light()[[5]], size = 4, hjust = 0) +
   theme_tq() +
   labs(title = "ACF: CFSv2 Bias")
 
 train.filtered %>%
-  tidy_acf("bias", lags = 1:200) %>%
+  tidy_acf("bias", lags = 110:150) %>%
   ggplot(aes(lag, acf)) +
   #geom_vline(xintercept = 120, size = 3, color = palette_light()[[2]]) +
   geom_segment(aes(xend = lag, yend = 0), color = palette_light()[[1]]) +
@@ -132,21 +144,21 @@ train.filtered %>%
            #color = palette_light()[[2]], size = 5, hjust = 0) +
   theme_tq() +
   labs(title = "ACF: CFSv2 Bias",
-       subtitle = "Zoomed in on Lags 10 to 100")
+       subtitle = "Zoomed in on Lags 110 to 150")
 
-sun_spots %>%
-  tidy_acf(value, lags = 115:135) %>%
-  ggplot(aes(lag, acf)) +
-  geom_vline(xintercept = 120, size = 3, color = palette_light()[[2]]) +
-  geom_segment(aes(xend = lag, yend = 0), color = palette_light()[[1]]) +
-  geom_point(color = palette_light()[[1]], size = 2) +
-  geom_label(aes(label = acf %>% round(2)), vjust = -1,
-             color = palette_light()[[1]]) +
-  annotate("text", label = "10 Year Mark", x = 121, y = 0.8, 
-           color = palette_light()[[2]], size = 5, hjust = 0) +
-  theme_tq() +
-  labs(title = "ACF: Sunspots",
-       subtitle = "Zoomed in on Lags 115 to 135")
+# Pull Optimal Lag
+optimal_lag_setting <- train.filtered %>%
+  tidy_acf("bias", lags = 110:150) %>%
+  filter(acf == max(acf)) %>%
+  pull(lag)
+optimal_lag_setting # 281!
+
+
+
+############################################################################
+# Let's evaluate the ACF and see if LSTM model is a good approach.
+# Autocorrelation function, relation between time series of interest in 
+# lagged versions of itself.
 
 
 # Create LSTM
