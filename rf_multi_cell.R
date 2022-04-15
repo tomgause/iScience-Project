@@ -33,11 +33,22 @@ train <- readRDS("./data/train_vermont_2022-04-11_20-54-09.RDS")
 
 
 
-# Currently, this model is designed to train on individual pixels.
+# Let's train a single random forest on multiple pixels.
+# For this run, we chose the pixels in Vermont.
 # The experiment below will reveal approximately how often the rf performs
 # better than the qm method by testing on 200 data points. We'll also save
 # optimal parameters along the way so we can quickly reproduce results in
 # the downstream (assuming any models perform well...)
+
+#graph pixels for sanity check! looks like Vermont.
+train%>%
+  dplyr::select(x,y)%>%
+  unique()%>%
+  ggplot(mapping = aes(x = x, y = y))+
+  geom_point(size = 5)
+  
+
+
 min.cell.errors <- data.frame(0,0,0,0,0,0)
 colnames(min.cell.errors) <- c("rf.mse", "qm.mse", "base.mse",
                                "best.mtry", "best.nodesize", "best.samplefrac")
@@ -45,19 +56,7 @@ colnames(min.cell.errors) <- c("rf.mse", "qm.mse", "base.mse",
 train.data <- subset(train, select = c(-forecast_timestamp,
                                             -fcst_cell,
                                             -obs_pr_m_day.x,
-                                            -obs_cell,
-                                            -lag1,
-                                            -lag2,
-                                            -lag3,
-                                            -lag4,
-                                            -lag5,
-                                            -lag6,
-                                            -lag7,
-                                            -lag8,
-                                            -lag9,
-                                            -lag10,
-                                            -lag11,
-                                            -lag12))
+                                            -obs_cell))
 # omit all rows that contain an NA
 train.data <- na.omit(train.data)
 # clean up memory!
@@ -75,16 +74,16 @@ metric.data <- data.frame(0,0,0,0)
 colnames(metric.data) <- c("i", "j", "k", "error")
 count <- 0
 
-for (i in 2:6){ #range of mtry, down to 18 as we are not using x,y
+for (i in 10:20){ #range of mtry
   for (j in c(100, 1000, 10000)){ #range of nodesizes
-    for (k in c(.7, 0.8, .9)) { #range of sample fractions
+    for (k in c(.6,.7, 0.8,.9)) { #range of sample fractions
       
       count <- count + 1
       cat(sprintf("\n\n MODEL %f\n", count))
       
       rf <- ranger(obs_tmp_k.x ~ ., # More efficient
                    data = train.data,
-                   num.trees = 100, # Adjust this later
+                   num.trees = 20, # Adjust this later
                    mtry = i, 
                    min.node.size = j,
                    sample.fraction = k,
@@ -133,20 +132,20 @@ metric.data <- data.frame(0,0,0,0)
 colnames(metric.data) <- c("i", "j", "k", "error")
 count <- 0
 
-for (i in 5:6){ #range of mtry, down to 18 as we are not using x,y
-  for (j in c(50, 75, 100, 125, 150, 175, 200, 300, 500)){ #range of nodesizes
-    for (k in c(0.8, .9)) { #range of sample fractions
+for (i in 16:20){ #range of mtry
+  for (j in c(50, 100, 200, 300, 500)){ #range of nodesizes
+    for (k in c(0.7,0.8,.9,1)) { #range of sample fractions
       
       count <- count + 1
       cat(sprintf("\n\n MODEL %f\n", count))
       
       rf <- ranger(obs_tmp_k.x ~ ., # More efficient
                    data = train.data,
-                   num.trees = 100, # Adjust this later
+                   num.trees = 20, # Adjust this later
                    mtry = i, 
                    min.node.size = j,
                    sample.fraction = k,
-                   num.threads = 12, # 20 threads on Alex machine
+                   num.threads = 16, # 20 threads on Alex machine
                    oob.error = TRUE) # use OOB error for cross validation
       
       # Get OOB
@@ -191,16 +190,16 @@ metric.data <- data.frame(0,0,0,0)
 colnames(metric.data) <- c("i", "j", "k", "error")
 count <- 0
 
-for (i in 6){ #range of mtry, down to 18 as we are not using x,y
-  for (j in c(10, 15, 20, 25, 30,35,  40, 45, 50, 55, 60)){ #range of nodesizes
-    for (k in c(.9)) { #range of sample fractions
+for (i in 17:20){ #range of mtry, down to 18 as we are not using x,y
+  for (j in c(30, 40, 50, 60, 70)){ #range of nodesizes
+    for (k in c(0.7,0.8,.9,1)) { #range of sample fractions
       
       count <- count + 1
       cat(sprintf("\n\n MODEL %f\n", count))
       
       rf <- ranger(obs_tmp_k.x ~ ., # More efficient
                    data = train.data,
-                   num.trees = 100, # Adjust this later
+                   num.trees = 20, # Adjust this later
                    mtry = i, 
                    min.node.size = j,
                    sample.fraction = k,
