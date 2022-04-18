@@ -1,6 +1,6 @@
 ### make_data.R
 # Tom Gause, Acadia Hegedus, and Katelyn Mei
-# last edited 4/17/2022
+# last edited 4/18/2022
 
 # # old data. Copy and past this inside iScience_Project/data
 # curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.ta --output hindcast_data.tar;
@@ -71,6 +71,9 @@ hindcast_subset <- hindcast_subset %>%
 
 hindcast_subset$forecast_timestamp_rm<- ym(hindcast_subset$forecast_timestamp_rm)
 hindcast_subset$forecast_target <- ym(hindcast_subset$forecast_target)
+hindcast_subset$target_month <- substring(hindcast_subset$target_month, 5, 6)
+hindcast_subset$target_month <- as.numeric(hindcast_subset$target_month)
+
 
 gc()
 rm(hindcast_all)
