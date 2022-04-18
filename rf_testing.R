@@ -1,6 +1,6 @@
 ### rf testing
 # Tom Gause, Acadia Hegedus, and Katelyn Mei
-# 4/17/2022
+# 4/18/2022
 
 library(data.table)
 library(rvest)
@@ -22,6 +22,7 @@ library(dendextend)
 library(arules)
 library(microbenchmark)
 library(ranger)
+library(lubridate)
 
 #set working directory to file location
 setwd(dirname(getActiveDocumentContext()$path)) 
@@ -30,6 +31,7 @@ setwd(dirname(getActiveDocumentContext()$path))
 rf.all <- final.rf #TO DO: save final.rf and load in somehow
 test <- readRDS("./data/test_subset_2022-04-18_10-27-26.RDS")
 
+#To do: include training data
 # Generate Climate Norm
 # Mean of historic observed temperatures for each month
 climate.norm <- test%>%
@@ -42,6 +44,17 @@ climate.norm <- test%>%
 #add 1 year to forecast_target so that each forecast is the historic mean of temp 
 #NOT including current month's temperature
 climate.norm$forecast_target <- climate.norm$forecast_target %m+% months(12)
+
+#left_join with actual observed to line up properly with forecast_target
+colnames(climate.norm)[3] <- "old_obs_tmp_k"
+test.for.join <- test%>%
+  dplyr::select(fcst_cell,forecast_target,obs_tmp_k)%>%
+  unique()
+climate.norm.joined <- left_join(climate.norm, test.for.join, by = c("fcst_cell",
+                                                                     "forecast_target"))
+climate.norm$old_obs_tmp_k <- climate.norm.joined$obs_tmp_k 
+colnames(climate.norm)[3] <- "obs_tmp_k"
+climate.norm <- na.omit(climate.norm)
 
 # Select and store all forecast cells
 sample.cells <- test %>%
@@ -95,7 +108,7 @@ mean.errors %>%
   xlab("Bias Correction Method")+
   theme_test()+
   theme(plot.title = element_text(hjust = 0.5))+
-  ggtitle("MSE for Various Bias Correction Methods, Tested on 2013-2021 Data")
+  ggtitle("MSE for Various Bias Correction Methods, \n Tested on 2013-2021 Data")
 
 
 # Save results of testing
@@ -107,4 +120,3 @@ filename <- paste0("./data/", "test_results_", currentTime, ".RDS")
 
 # And save!
 saveRDS(cell.error, file = filename)
-
