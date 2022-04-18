@@ -28,7 +28,7 @@ setwd("C:/Users/tgause/iScience_Project")
 
 # Load in our data sets.
 # For the first experiment, let's use a single cell!
-train <- readRDS("./data/train_vermont_2022-04-11_20-54-09.RDS")
+train <- readRDS("./data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
 #test <- readRDS("./data/test_subset_2022-04-06_01-19-58.RDS") #AND THIS
 
 
@@ -46,17 +46,19 @@ train%>%
   unique()%>%
   ggplot(mapping = aes(x = x, y = y))+
   geom_point(size = 5)
-  
+
 
 
 min.cell.errors <- data.frame(0,0,0,0,0,0)
 colnames(min.cell.errors) <- c("rf.mse", "qm.mse", "base.mse",
                                "best.mtry", "best.nodesize", "best.samplefrac")
 
-train.data <- subset(train, select = c(-forecast_timestamp,
-                                            -fcst_cell,
-                                            -obs_pr_m_day.x,
-                                            -obs_cell))
+train.data <- subset(train, select = c(-forecast_timestamp_rm,
+                                       -fcst_cell,
+                                       -obs_pr_m_day,
+                                       -obs_cell,
+                                       -obs_tmp_k,
+                                       -bias.p))
 # omit all rows that contain an NA
 train.data <- na.omit(train.data)
 # clean up memory!
@@ -69,7 +71,7 @@ ncol(train.data)
 # resample size. We fix ntree (the number of trees in our random forest) to be 
 # 100 and optimize it later, as we know more trees in our forest will only 
 # increase the model's performance.
-  
+
 metric.data <- data.frame(0,0,0,0)
 colnames(metric.data) <- c("i", "j", "k", "error")
 count <- 0
@@ -81,7 +83,7 @@ for (i in 10:20){ #range of mtry
       count <- count + 1
       cat(sprintf("\n\n MODEL %f\n", count))
       
-      rf <- ranger(obs_tmp_k.x ~ ., # More efficient
+      rf <- ranger(bias.t ~ ., # More efficient
                    data = train.data,
                    num.trees = 20, # Adjust this later
                    mtry = i, 
@@ -99,17 +101,17 @@ for (i in 10:20){ #range of mtry
     }
   }
 }
-  
+
 # Rename columns in metric data
 colnames(metric.data) <- c("mtry","nodesize","samplefrac","error")
-  
+
 # Save the metric data here
 # First, grab and format the current time
 currentTime <- Sys.time()
 currentTime <- gsub(" ", "_", currentTime)
 currentTime <- gsub(":", "-", currentTime)
 filename <- paste0("./data/", "rf_parameters_", currentTime, ".RDS")
-  
+
 print(paste0("saving metric data as ", filename, "..."))
 saveRDS(metric.data, file = filename)
 
@@ -134,12 +136,12 @@ count <- 0
 
 for (i in 16:20){ #range of mtry
   for (j in c(50, 100, 200, 300, 500)){ #range of nodesizes
-    for (k in c(0.7,0.8,.9,1)) { #range of sample fractions
+    for (k in c(0.8,.9,1)) { #range of sample fractions
       
       count <- count + 1
       cat(sprintf("\n\n MODEL %f\n", count))
       
-      rf <- ranger(obs_tmp_k.x ~ ., # More efficient
+      rf <- ranger(bias.t ~ ., # More efficient
                    data = train.data,
                    num.trees = 20, # Adjust this later
                    mtry = i, 
@@ -192,18 +194,18 @@ count <- 0
 
 for (i in 17:20){ #range of mtry, down to 18 as we are not using x,y
   for (j in c(30, 40, 50, 60, 70)){ #range of nodesizes
-    for (k in c(0.7,0.8,.9,1)) { #range of sample fractions
+    for (k in c(0.85,.9,.95,1)) { #range of sample fractions
       
       count <- count + 1
       cat(sprintf("\n\n MODEL %f\n", count))
       
-      rf <- ranger(obs_tmp_k.x ~ ., # More efficient
+      rf <- ranger(bias.t ~ ., # More efficient
                    data = train.data,
                    num.trees = 20, # Adjust this later
                    mtry = i, 
                    min.node.size = j,
                    sample.fraction = k,
-                   num.threads = 8, # 20 threads on Alex machine
+                   num.threads = 10, # 20 threads on Alex machine
                    oob.error = TRUE) # use OOB error for cross validation
       
       # Get OOB
@@ -238,3 +240,59 @@ print(paste("The most ideal hyperparameters are mtry = ", best.parameters$mtry,
             ", nodesize = ", best.parameters$nodesize,
             ", bootstrap resample size = ", best.parameters$samplefrac,
             ", with an error of", best.parameters$error))
+
+#Next, test for numtrees:
+#numtrees = 20
+system.time(rf <- ranger(bias.t ~ ., # More efficient
+                         data = train.data,
+                         num.trees = 20, 
+                         mtry = best.parameters$mtry,#20
+                         min.node.size = best.parameters$nodesize, #30
+                         sample.fraction = best.parameters$samplefrac, #1.0
+                         num.threads = 16, # 20 threads on Alex machine
+                         oob.error = TRUE))
+error <- rf$prediction.error
+
+#elapsed time = 213 seconds, error = 0.04
+
+system.time(rf <- ranger(bias.t ~ ., # More efficient
+                         data = train.data,
+                         num.trees = 100, 
+                         mtry = best.parameters$mtry,#20
+                         min.node.size = best.parameters$nodesize, #30
+                         sample.fraction = best.parameters$samplefrac, #1.0
+                         num.threads = 16, # 20 threads on Alex machine
+                         oob.error = TRUE))
+error <- rf$prediction.error
+
+#elapsed time = 810 seconds, error = 0.03
+
+#This is pretty good!
+
+final.rf <- ranger(bias.t ~ ., # More efficient
+                   data = train.data,
+                   num.trees = 100, 
+                   mtry = best.parameters$mtry,#20
+                   min.node.size = best.parameters$nodesize, #30
+                   sample.fraction = best.parameters$samplefrac, #1.0
+                   num.threads = 16, # 20 threads on Alex machine
+                   oob.error = TRUE,
+                   importance = 'impurity')
+
+##################################################################
+###################Variable Importance Plotting###################
+
+plotting.data <- as.data.frame(final.rf$variable.importance)
+plotting.data <- plotting.data%>%
+  mutate(Variable = rownames(plotting.data))
+colnames(plotting.data)[1] <- "Importance"
+
+plotting.data%>%
+  ggplot(mapping = aes(x = reorder(Variable,Importance), 
+                       y = Importance))+
+  geom_bar(stat = 'identity',fill="#FF9999",color = "pink")+
+  coord_flip()+
+  xlab("Variable")+
+  theme_test()+
+  theme(plot.title = element_text(hjust = 0.5))+
+  ggtitle("Variable Importance for Vermont RF All Pixels")

@@ -1,6 +1,6 @@
-### make_train_data2.R
+### make_train_data.R
 # Tom Gause, Acadia Hegedus, and Katelyn Mei
-# last edited 4/16/2022
+# last edited 4/15/2022
 
 # # old data. Copy and past this inside iScience_Project/data
 # curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.ta --output hindcast_data.tar;
@@ -146,7 +146,6 @@ colnames(lag.data.t)[1] <- "date"
 #left_join hindcast_subset with lag.data for each lag column, changing lag to temp bias
 hindcast_subset_temp_lags <- hindcast_subset %>% select(-forecast_timestamp)
 for (i in (1:12)){
-  #i <- 1
   mylag <- paste0("lag",i,".t")
   hindcast_subset_temp_lags_joined <- left_join(hindcast_subset_temp_lags, lag.data.t, 
                                                 by = c("fcst_cell", setNames("date", mylag)))
@@ -214,4 +213,3 @@ filename <- paste0("./data/", "train_subset_", state.subset, "_", currentTime, "
 
 print(paste0("saving as ", filename, "..."))
 saveRDS(hindcast_subset_temp_lags, file = filename)
-
