@@ -2,6 +2,7 @@
 .Rhistory
 .Rapp.history
 /data
+*.out
 
 # Session Data files
 .RData
@@ -45,8 +46,6 @@ docs/
 
 # translation temp files
 po/*~
-
-# data subdirectory
 
 # RStudio Connect folder
 rsconnect/

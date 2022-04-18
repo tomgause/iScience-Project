@@ -3,12 +3,13 @@
 # last edited 4/2/2022
 
 # # old data. Copy and past this inside iScience_Project/data
-# curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.ta --output hindcast_data.tar;
+# curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.tar --output hindcast_data.tar;
 # tar -xvf hindcast_data.tar
 # 
 # # new data. Copy and paste these lines inside iScience_Project/data
 # curl https://wsim-datasets.s3.us-east-2.amazonaws.com/forecasts_usa.tar --output new_hindcast_data.tar;
 # tar -xvf new_hindcast_data.tar
+
 
 library(tidyverse)
 library(lubridate)
