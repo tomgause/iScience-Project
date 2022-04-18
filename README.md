@@ -1,6 +1,9 @@
 # CFSv2 Bias Correction with Machine Learning
 ### _(Title Subject to Change)_
 
+##### Helpful commands:
+-
+
 ##### Sub-directories:
 - **./data** contains .tif for elevation data. curl and extract data from 1982-2010 into **./data/old** and 2012-2020 into **./data/new**
 - **./deprecated** contains Rscripts we no longer use, but we're keeping as backup. Never delete!
