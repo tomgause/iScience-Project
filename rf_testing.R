@@ -1,6 +1,6 @@
 ### rf testing
 # Tom Gause, Acadia Hegedus, and Katelyn Mei
-# 4/18/2022
+# 4/19/2022
 
 library(data.table)
 library(rvest)
@@ -27,14 +27,24 @@ library(lubridate)
 #set working directory to file location
 setwd(dirname(getActiveDocumentContext()$path)) 
 
-# Load in our RFs and our test data
-rf.all <- final.rf #TO DO: save final.rf and load in somehow
+# Load in our RFs and our test data; and train data for climate norm calculations
+#to do: check to see that loading in RF works
+rf.all <- final.rf # this doesn't work: load("finalVTrf.allpixels.RData")
+train <- readRDS("./data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
 test <- readRDS("./data/test_subset_2022-04-18_10-27-26.RDS")
 
 #To do: include training data
 # Generate Climate Norm
 # Mean of historic observed temperatures for each month
-climate.norm <- test%>%
+train1 <- train%>%
+  dplyr::select(-obs_cell)
+
+test1 <- test%>%
+  dplyr::select(-fcst_qm_pr_m_day,-fcst_qm_tmp_k)
+
+all.data <- rbind(train1,test1)
+
+climate.norm <- all.data%>%
   dplyr::select(forecast_target, fcst_cell, 
                 obs_tmp_k, x, y, target_month)%>%
   unique()%>%
@@ -47,14 +57,32 @@ climate.norm$forecast_target <- climate.norm$forecast_target %m+% months(12)
 
 #left_join with actual observed to line up properly with forecast_target
 colnames(climate.norm)[3] <- "old_obs_tmp_k"
-test.for.join <- test%>%
+all.data.for.join <- all.data%>%
   dplyr::select(fcst_cell,forecast_target,obs_tmp_k)%>%
   unique()
-climate.norm.joined <- left_join(climate.norm, test.for.join, by = c("fcst_cell",
-                                                                     "forecast_target"))
+climate.norm.joined <- left_join(climate.norm, all.data.for.join, by = c("fcst_cell",
+                                                                         "forecast_target"))
 climate.norm$old_obs_tmp_k <- climate.norm.joined$obs_tmp_k 
 colnames(climate.norm)[3] <- "obs_tmp_k"
 climate.norm <- na.omit(climate.norm)
+
+#test for one cell: looks like it worked!
+mytest <- climate.norm%>%
+  filter(fcst_cell == 261073,
+         target_month == 6)
+
+mytest1 <- train1%>%
+  filter(fcst_cell == 261073,
+         target_month == 6)%>%
+  dplyr::select(forecast_target,obs_tmp_k)%>%
+  unique()
+
+#climate.norm is missing some data, as there is a gap in between the train and test set 
+#(missing climate.norm data = Jan 2010 = Feb 2014)
+
+#remove data before March 2014 from the test set to make testing fair
+test <- test%>%
+  filter(forecast_target > "2014-02-01")
 
 # Select and store all forecast cells
 sample.cells <- test %>%
@@ -72,13 +100,18 @@ for (cell in sample.cells[,1]) {
   cell.data <- test %>%
     filter(fcst_cell == cell)
   
-  climate.norm.cell <- filter(climate.norm,fcst_cell == cell)
+  climate.norm.cell <- climate.norm%>%
+    filter(fcst_cell == cell)%>%
+    ungroup()%>%
+    dplyr::select(forecast_target,cummean_temp)
+  climate.norm.preds <- left_join(cell.data, climate.norm.cell, 
+                                  by = "forecast_target")
   
   # Generate mse for qm, base, and climate.norm against obs
   qm.mse <- mean((cell.data$obs_tmp_k - cell.data$fcst_qm_tmp_k)^2)
   base.mse <- mean((cell.data$obs_tmp_k - cell.data$fcst_tmp_k)^2)
-  climate.norm.mse <- mean((climate.norm.cell$obs_tmp_k - 
-                              climate.norm.cell$cummean_temp)^2)
+  climate.norm.mse <- mean((climate.norm.preds$obs_tmp_k - 
+                              climate.norm.preds$cummean_temp)^2)
   
   # Generate predictions to find rf mse against obs
   pred <- predict(rf.all, data = cell.data)
@@ -120,3 +153,4 @@ filename <- paste0("./data/", "test_results_", currentTime, ".RDS")
 
 # And save!
 saveRDS(cell.error, file = filename)
+
