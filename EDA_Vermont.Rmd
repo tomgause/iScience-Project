@@ -1,0 +1,198 @@
+---
+title: "Vermont Data Visualization"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r warning=FALSE,message=FALSE}
+library(ggplot2)
+library(tidyverse)
+library(lubridate)
+library(RColorBrewer)
+library(viridis)
+library(gcookbook)
+```
+
+```{r}
+vermont_data <- read_rds(file.choose())
+
+Vermont.data <- vermont_data %>% mutate(year= year(forecast_target))
+```
+
+####EDA BY YEAR#####
+```{r}
+Vermont.data %>% 
+  group_by(target_month) %>% 
+  summarise(average_monthly_bias = mean(bias.t)) %>% 
+  ggplot()+
+  geom_line(aes(x = target_month, 
+                y = average_monthly_bias))+
+  theme_bw()+
+  scale_x_continuous(breaks = c(1,2,3,4,5,6,7,8,9,10,11,12))
+
+```
+
+```{r}
+Vermont.data %>% 
+  #filter(year %in%c(1982,2009)) %>% 
+  group_by(target_month,year) %>% 
+  summarise(average_bias = mean(bias.t)) %>% 
+  ggplot()+
+  geom_line(aes(x = target_month, 
+                y = average_bias,
+                color = factor(year)))+
+  theme_bw()+
+  scale_x_continuous(breaks = c(1,2,3,4,5,6,7,8,9,10,11,12))+
+  labs(color = "Year",
+       x = "Month",
+       y = "Average Prediction Bias")
+
+```
+
+```{r}
+Vermont.data %>% 
+ # filter(year > 2009) %>% 
+  group_by(target_month,year) %>% 
+  summarise(average_bias = mean(bias.t)) %>% 
+  arrange(average_bias)
+
+### Found the worst time in prediction on average is 1989-12
+##fun fact: it is the largest snowstorm in history for the southeast 
+
+##Weather prediction before 2000 
+Vermont.data %>% 
+ filter(year <= 2000) %>% 
+  group_by(target_month,year) %>% 
+  summarise(average_bias = mean(bias.t)) %>% 
+  arrange(average_bias) %>% 
+  ggplot()+
+  geom_line(aes(x = target_month, 
+                y = average_bias,
+                color = factor(year)))+
+  theme_bw()+
+  scale_x_continuous(breaks = c(1,2,3,4,5,6,7,8,9,10,11,12))+
+  labs(color = "Year",
+       x = "Month",
+       y = "Average Prediction Bias")
+
+
+### Weather prediction after
+Vermont.data %>% 
+ filter(year > 2000  & year < 2003) %>% 
+  group_by(target_month,year) %>% 
+  summarise(average_bias = mean(bias.t)) %>% 
+  arrange(average_bias) %>% 
+  ggplot()+
+  geom_line(aes(x = target_month, 
+                y = average_bias,
+                color = factor(year)))+
+  theme_bw()+
+  scale_x_continuous(breaks = c(1,2,3,4,5,6,7,8,9,10,11,12))+
+  labs(color = "Year",
+       x = "Month",
+       y = "Average Prediction Bias")
+```
+
+
+
+
+
+
+
+
+
+####EDA BY MONTH####
+```{r}
+Vermont.data %>% 
+  filter(year ==2009) %>% 
+  group_by(x,y) %>% 
+  summarise(average_pixel_bias = mean(bias.t)) %>% 
+  ggplot()+
+  geom_point(aes(x = x, 
+                y = y,
+                color =average_pixel_bias))+
+  theme_bw()+
+  scale_color_viridis()
+
+Vermont.data %>% 
+  filter(year ==1984) %>% 
+  group_by(x,y) %>% 
+  summarise(average_pixel_bias = mean(bias.t)) %>% 
+  ggplot()+
+  geom_point(aes(x = x, 
+                y = y,
+                color =average_pixel_bias),
+             size = 6)+
+  theme_bw()+
+  scale_color_viridis()
+
+
+### Alex
+library(gganimate)
+library(gifski)
+library(av)
+Vermont.data %>% 
+  group_by(x,y, year) %>% 
+  summarise(average_pixel_bias = mean(bias.t)) %>% 
+  ungroup() %>%
+  ggplot()+
+  geom_point(aes(x = x, 
+                y = y,
+                color =average_pixel_bias),
+             size = 6)+
+  theme_bw()+
+  theme(axis.text = element_text(size = 17),title = element_text(size =19)) +
+  scale_color_viridis() +
+  transition_states(year) +
+  ggtitle("Year = {closest_state}")
+  
+
+```
+
+
+####EDA BY Leadtime####
+```{r}
+Vermont.data %>% 
+  group_by(lead,target_month) %>% 
+  summarise(average_bias = mean(bias.t)) %>% 
+  arrange(-average_bias) %>% 
+  ggplot()+
+  geom_tile(aes(x = target_month, 
+                y = lead,
+                fill = average_bias),
+             size = 6)+
+  scale_x_continuous(breaks = c(1,2,3,4,5,6,7,8,9,10,11,12))+
+  scale_y_continuous(breaks = c(1,2,3,4,5,6,7,8,9))+
+  labs(fill = "Average_bias",
+       x = "Target Month",
+       y = "Lead Time")+
+  theme_bw()+
+  theme(axis.text = element_text(size = 16))+
+  scale_fill_viridis()
+```
+####EDA BY ELEVATION###
+```{r}
+Vermont.data %>% 
+  ggplot()+
+  geom_boxplot(aes(x = cut(elevation, breaks = 10), y = bias.t, fill = cut(elevation,breaks =10)), color = "black")+
+  theme_bw()+
+  labs(color = "Elavation Range",
+       x = element_blank(),
+       y = "Bias in Temperature Prediction") +
+  coord_flip()
+```
+```{r}
+Vermont.data %>% 
+  ggplot()+
+  geom_boxplot(aes(x = cut(elevation, breaks = 10), y = bias.p, fill = cut(elevation,breaks =10)),color = "black")+
+  theme_bw()+
+  labs(color = "Elavation Range",
+       x = element_blank(),
+       y = "Bias in Precitipation Prediction")+
+  coord_flip()
+```
+
+
