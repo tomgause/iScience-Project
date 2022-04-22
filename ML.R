@@ -669,3 +669,7 @@ predict_keras_lstm <- function(split, epochs = 300, ...) {
 # Let's make the predictions.
 sample_predictions_lstm_tbl <- rolling_origin_resamples %>%
   mutate(predict = map(splits, predict_keras_lstm, epochs = 300))
+
+# Save!
+save(sample_predictions_lstm_tbl,
+     file = "/storage/tgause/sample_predictions_lstm_tbl.csv")
