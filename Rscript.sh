@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=maketrain
 #SBATCH --output=maketrain-%j.out 
-#SBATCH --partition=himem-standard 
-#SBATCH --mem=256G
+#SBATCH --partition=standard 
+#SBATCH --mem=50G
 #SBATCH --time=01:00:00
 
 # print SLURM envirionment variables

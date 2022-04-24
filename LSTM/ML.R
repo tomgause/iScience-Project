@@ -5,6 +5,12 @@
 # LSTM experiment inspired by:
 # https://www.r-bloggers.com/2018/04/time-series-deep-learning-forecasting-sunspots-with-keras-stateful-lstm-in-r/
 
+## Default repo
+local({r <- getOption("repos")
+       r["CRAN"] <- "http://cran.r-project.org" 
+       options(repos=r)
+})
+
 packages <- c("tidyverse", "glue", "forcats", "timetk", "tidyquant",
               "tibbletime", "cowplot", "recipes", "rsample", "yardstick",
               "keras")
