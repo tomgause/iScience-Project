@@ -11,15 +11,12 @@ local({r <- getOption("repos")
 packages <- c("stringr", "tidyverse", "dplyr", "microbenchmark", "caret", "ranger")
 install.packages(setdiff(packages, rownames(installed.packages()))) 
 
+library(dplyr)
 library(stringr)
 library(caret)
 library(tidyverse)
-library(dplyr)
 library(microbenchmark)
 library(ranger)
-
-#set working directory to file location
-setwd(dirname(getActiveDocumentContext()$path)) 
 
 # Load in our data sets.
 # For the first experiment, let's use a single cell!
@@ -27,7 +24,7 @@ train <- readRDS("/storage/tgause/iScience_tom/iScience_Project/data/Vermont_tra
 
 #test <- readRDS("./data/test_subset_2022-04-06_01-19-58.RDS") #AND THIS
 
-
+print(nrow(train))
 
 # Currently, this model is designed to train on individual pixels.
 # The experiment below will reveal approximately how often the rf performs
@@ -42,12 +39,13 @@ min.cell.errors <- data.frame(0,0,0,0,0,0)
 colnames(min.cell.errors) <- c("rf.mse", "qm.mse", "base.mse",
                                "best.mtry", "best.nodesize", "best.samplefrac")
 
-for (i in sample.cells) {
+for (i in sample.cells[1,]) {
   cell <- i
+  print(cell)
   
   # Select a single point
-  train.data <- train %>%
-    filter(fcst_cell == cell)
+  train.data <- dplyr::filter(train, fcst_cell == cell)
+  print(nrow(train.data))
   
   # I removed the "bias" column. We can figure out if we're making an over-
   # or under-prediction downstream. Instead, I've predicted obs_tmp_k.x!
@@ -67,14 +65,20 @@ for (i in sample.cells) {
   #   - obs_tmp_k.x
   
   # clean up data. We don't need any of these columns for our analysis
-  train.data <- subset(train.data, select = c(-forecast_timestamp,
-                                              -fcst_cell,
-                                              -obs_pr_m_day.x,
-                                              -obs_cell))
+  train.data <- subset(train.data, select = c(-forecast_timestamp_rm,
+                                        -fcst_cell,
+                                        -obs_pr_m_day,
+                                        -obs_cell,
+                                        -obs_tmp_k,
+                                        -bias.p))
   
   train.data <- na.omit(train.data)
   # clean up memory!
   gc()
+  print(nrow(train))
+  print(nrow(train.data))
+
+  
   
   # To optimize our random forest, we will need to pick the best hyperparameters
   # including mtry (the number of variables for each bagged regression tree to
@@ -98,6 +102,8 @@ for (i in sample.cells) {
   #     for (k in c(0.75,0.8,0.85,0.90,0.95,1)) { #ra
   # these results are saved in error_200_points2 
   
+ 
+
   for (i in 12:18){ #range of mtry, down to 18 as we are not using x,y
     for (j in c(10,50,100,500,1000,10000,100000)){ #range of nodesizes
       for (k in c(0.7,0.8,0.9,1)) { #range of sample fractions
@@ -105,13 +111,13 @@ for (i in sample.cells) {
         count <- count + 1
         cat(sprintf("\n\n MODEL %f\n", count))
         
-        rf <- ranger(obs_tmp_k.x ~ ., # More efficient
+        rf <- ranger(bias.t ~ ., # More efficient
                      data = train.data,
-                     num.trees = 110, # Adjust this later
+                     num.trees = 100, # Adjust this later
                      mtry = i, 
                      min.node.size = j,
                      sample.fraction = k,
-                     num.threads = 36, # 16/20 threads on Alex machine
+                     num.threads = 32, # 20 threads on Alex machine
                      oob.error = TRUE) # use OOB error for cross validation
         
         # Get OOB

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=RF
 #SBATCH --output=RF-%j.out 
-#SBATCH --partition=himem-standard 
-#SBATCH --mem=512G
+#SBATCH --partition=standard
+#SBATCH --mem=64G
 #SBATCH --cpus-per-task=36 
-#SBATCH --time=02:00:00
+#SBATCH --time=04:00:00
 
 # print SLURM envirionment variables
 echo "Job ID: ${SLURM_JOB_ID}"

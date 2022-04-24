@@ -672,7 +672,7 @@ sample_predictions_lstm_tbl <- rolling_origin_resamples %>%
 
 # Save!
 save(sample_predictions_lstm_tbl,
-     file = "/Users/tomgause/Desktop/iScience_data/sample_predictions_lstm_tbl.RDS")
+     file = "/storage/tgause/iScience_tom/iScience_Project/data")
 
 # Let's get the sample RMSE
 sample_rmse_tbl <- sample_predictions_lstm_tbl %>%
