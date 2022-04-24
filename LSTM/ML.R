@@ -734,3 +734,24 @@ plot_predictions <- function(sampling_tbl, predictions_col,
 sample_predictions_lstm_tbl %>%
   plot_predictions(predictions_col = predict, alpha = 0.5, size = 1, base_size = 10,
                    title = "Keras Stateful LSTM: Backtested Predictions")
+
+############################################################################
+# Save experiment plots
+
+plots.directory <- "./plots"
+# Get all plots
+plots.dir.path <- list.files(tempdir(), pattern="rs-graphics", full.names = TRUE); 
+plots.png.paths <- list.files(plots.dir.path, pattern=".png", full.names = TRUE)
+
+# Copy all plots to directory of choice
+file.copy(from=plots.png.paths, to=plots.directory)
+
+# All of the plots have ugly auto-generated names, so we want to rename them
+# with integers in the order they were generated
+plots.png.detials <- file.info(plots.png.paths)
+plots.png.detials <- plots.png.detials[order(plots.png.detials$mtime),]
+sorted.png.names <- gsub(plots.dir.path, plots.directory, row.names(plots.png.detials), fixed=TRUE)
+numbered.png.names <- paste0(plots.directory, "/", 1:length(sorted.png.names), ".png")
+
+# Rename all the .png files as: 1.png, 2.png, 3.png, and so on.
+file.rename(from=sorted.png.names, to=numbered.png.names)
