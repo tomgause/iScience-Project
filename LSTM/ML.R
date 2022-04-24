@@ -5,6 +5,8 @@
 # LSTM experiment inspired by:
 # https://www.r-bloggers.com/2018/04/time-series-deep-learning-forecasting-sunspots-with-keras-stateful-lstm-in-r/
 
+print(R.Version())
+
 ## Default repo
 local({r <- getOption("repos")
        r["CRAN"] <- "http://cran.r-project.org" 
@@ -13,7 +15,7 @@ local({r <- getOption("repos")
 
 packages <- c("tidyverse", "glue", "forcats", "timetk", "tidyquant",
               "tibbletime", "cowplot", "recipes", "rsample", "yardstick",
-              "keras")
+              "keras", "tensorflow")
 install.packages(setdiff(packages, rownames(installed.packages()))) 
 
 # Core Tidyverse
@@ -34,11 +36,17 @@ library(yardstick)
 # Modeling
 library(keras)
 
+# TODO: delete this
+library(tensorflow)
+install_tensorflow()
+
 # Make all the data
 train <- readRDS("/storage/tgause/iScience_tom/iScience_Project/data/Vermont_train.RDS")
+train %>% head(10)
 #test <- readRDS("./data/test_vermont_2022-04-11_21-01-43.RDS")
 
 train <- train[order(train$forecast_target),]
+print("ordered")
 #test <- test[order(test$forecast_target),]
 
 data.all.predictions <- train %>%
@@ -49,7 +57,9 @@ data.all.predictions <- train %>%
          index = as_date(forecast_target)) %>%
   select(c(value, index)) %>%
   as_tbl_time(index = index)
-train.months <- length(unique(data$index)) # 335
+
+
+train.months <- length(unique(data.all.predictions$index)) # 335
 
 # To start, we'll just pick the first prediction made for each month
 data <- data.all.predictions[1+24*(0:325),]
@@ -310,7 +320,6 @@ rolling_origin_resamples %>%
 
 split    <- rolling_origin_resamples$splits[[12]]
 split_id <- rolling_origin_resamples$id[[12]]
-nrow(example_split)
 
 plot_split(split, expand_y_axis = FALSE, size = 0.5) +
   theme(legend.position = "bottom") +
