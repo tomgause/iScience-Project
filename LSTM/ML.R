@@ -29,7 +29,7 @@ library(yardstick)
 library(keras)
 
 # Make all the data
-train <- readRDS("/Users/tomgause/Desktop/iScience_data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
+train <- readRDS("/storage/tgause/iScience_tom/iScience_Project/data/Vermont_train.RDS")
 #test <- readRDS("./data/test_vermont_2022-04-11_21-01-43.RDS")
 
 train <- train[order(train$forecast_target),]
