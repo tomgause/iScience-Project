@@ -3,24 +3,18 @@
 # Acadia Hegedus
 # 4/8/2022
 
-library(data.table)
-library(rvest)
+## Default repo
+local({r <- getOption("repos")
+       r["CRAN"] <- "http://cran.r-project.org"
+       options(repos=r)
+})
+packages <- c("stringr", "tidyverse", "dplyr", "microbenchmark", "caret", "ranger")
+install.packages(setdiff(packages, rownames(installed.packages()))) 
+
 library(stringr)
-library(tidyverse)
-library(tidytext)
-library(ggplot2)
-library(readxl)
-library(class)
-library(FNN)
-library(MASS)
-library(ISLR)
-library(rpart)
-library(rattle)
-library(ipred)
-library(randomForest)
 library(caret)
-library(dendextend)
-library(arules)
+library(tidyverse)
+library(dplyr)
 library(microbenchmark)
 library(ranger)
 

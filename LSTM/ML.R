@@ -5,7 +5,6 @@
 # LSTM experiment inspired by:
 # https://www.r-bloggers.com/2018/04/time-series-deep-learning-forecasting-sunspots-with-keras-stateful-lstm-in-r/
 
-print(R.Version())
 
 ## Default repo
 local({r <- getOption("repos")
@@ -15,13 +14,8 @@ local({r <- getOption("repos")
 
 packages <- c("tidyverse", "glue", "forcats", "timetk", "tidyquant",
               "tibbletime", "cowplot", "recipes", "rsample", "yardstick",
-<<<<<<< HEAD
               "keras", "tensorflow")
 install.packages(setdiff(packages, rownames(installed.packages()))) 
-=======
-              "keras")
-install.packages(setdiff(packages, rownames(installed.packages())))
->>>>>>> 06c4f41a60693134c7d90b8b2fcd1c6b96729096
 
 # Core Tidyverse
 library(tidyverse)
@@ -42,8 +36,8 @@ library(yardstick)
 library(keras)
 
 # TODO: delete this
-library(tensorflow)
-install_tensorflow()
+#library(tensorflow)
+#install_tensorflow()
 
 # Make all the data
 train <- readRDS("/storage/tgause/iScience_tom/iScience_Project/data/Vermont_train.RDS")
@@ -758,20 +752,10 @@ sample_predictions_lstm_tbl %>%
 ############################################################################
 # Save experiment plots
 
-plots.directory <- "./plots"
+plots.directory <- "/storage/tgause/iScience_tom/iScience_Project/data/plots"
 # Get all plots
 plots.dir.path <- list.files(tempdir(), pattern="rs-graphics", full.names = TRUE);
 plots.png.paths <- list.files(plots.dir.path, pattern=".png", full.names = TRUE)
 
 # Copy all plots to directory of choice
 file.copy(from=plots.png.paths, to=plots.directory)
-
-# All of the plots have ugly auto-generated names, so we want to rename them
-# with integers in the order they were generated
-plots.png.detials <- file.info(plots.png.paths)
-plots.png.detials <- plots.png.detials[order(plots.png.detials$mtime),]
-sorted.png.names <- gsub(plots.dir.path, plots.directory, row.names(plots.png.detials), fixed=TRUE)
-numbered.png.names <- paste0(plots.directory, "/", 1:length(sorted.png.names), ".png")
-
-# Rename all the .png files as: 1.png, 2.png, 3.png, and so on.
-file.rename(from=sorted.png.names, to=numbered.png.names)
