@@ -29,9 +29,9 @@ setwd(dirname(getActiveDocumentContext()$path))
 
 # Load in our data sets.
 # For the first experiment, let's use a single cell!
-train <- readRDS("./data/train_subset__2022-04-06_01-10-09.RDS") #TODO: UPDATE
+train <- readRDS("/storage/tgause/iScience_tom/iScience_Project/data/Vermont_train.RDS") #TODO: UPDATE
 
-test <- readRDS("./data/test_subset_2022-04-06_01-19-58.RDS") #AND THIS
+#test <- readRDS("./data/test_subset_2022-04-06_01-19-58.RDS") #AND THIS
 
 
 
@@ -48,7 +48,7 @@ min.cell.errors <- data.frame(0,0,0,0,0,0)
 colnames(min.cell.errors) <- c("rf.mse", "qm.mse", "base.mse",
                                "best.mtry", "best.nodesize", "best.samplefrac")
 
-for (i in sample.cells[1:10,1]) { #only look at 10 pixels
+for (i in sample.cells) {
   cell <- i
   
   # Select a single point
@@ -104,9 +104,9 @@ for (i in sample.cells[1:10,1]) { #only look at 10 pixels
   #     for (k in c(0.75,0.8,0.85,0.90,0.95,1)) { #ra
   # these results are saved in error_200_points2 
   
-  for (i in 14:18){ #range of mtry, down to 18 as we are not using x,y
-    for (j in c(10,20,50,80)){ #range of nodesizes
-      for (k in c(0.75,0.8,0.85,0.90,0.95,1)) { #range of sample fractions
+  for (i in 12:18){ #range of mtry, down to 18 as we are not using x,y
+    for (j in c(10,50,100,500,1000,10000,100000)){ #range of nodesizes
+      for (k in c(0.7,0.8,0.9,1)) { #range of sample fractions
         
         count <- count + 1
         cat(sprintf("\n\n MODEL %f\n", count))
@@ -117,7 +117,7 @@ for (i in sample.cells[1:10,1]) { #only look at 10 pixels
                      mtry = i, 
                      min.node.size = j,
                      sample.fraction = k,
-                     num.threads = 16, # 16/20 threads on Alex machine
+                     num.threads = 36, # 16/20 threads on Alex machine
                      oob.error = TRUE) # use OOB error for cross validation
         
         # Get OOB
@@ -169,184 +169,184 @@ for (i in sample.cells[1:10,1]) { #only look at 10 pixels
                                                        best.samplefrac))
   gc()
 }
-saveRDS(min.cell.errors, "./data/error_200_points.RDS")
+saveRDS(min.cell.errors, "/storage/tgause/iScience_tom/iScience_Project/data/error_Vermont/single.RDS")
 
 
-####Test on test data
-
-# Select a single point
-test.data <- test %>%
-  filter(fcst_cell == sample.cells[1:10,1])
-
-test.data <- na.omit(test.data)
-
-rf <- ranger(obs_tmp_k.x ~ ., # More efficient
-             data = train.data,
-             num.trees = 110, # Adjust this later
-             mtry = min.cell.errors[11,"best.mtry"], 
-             min.node.size = min.cell.errors[11,"best.nodesize"],
-             sample.fraction = min.cell.errors[11,"best.samplefrac"],
-             num.threads = 16, # 16/20 threads on Alex machine
-             oob.error = TRUE)
-
-pred <- predict(rf, data = test.data)
-
-error <- mean((test.data$obs_tmp_k.x - pred$predictions)^2)
-#error = 33
-
-# test for num-trees
-metric.data <- data.frame(0,0)
-colnames(metric.data) <- c("i","error")
-count <- 0
-
-for (i in seq(50, 200, by = 10)) {
-  count <- count + 1
-  cat(sprintf("\n\n\n MODEL %f \n", count))
-  
-  rf <- ranger(obs_tmp_k.x ~ ., # More efficient
-               data = train.data,
-               num.trees = i,
-               mtry = best.mtry, 
-               min.node.size = best.nodesize,
-               sample.fraction = best.samplefrac,
-               num.threads = 16) # 16/20 threads on Alex machine
-  
-  # Generate predictions on test data and find MSE
-  pred <- predict(rf, data = test.data)
-  error <- mean((test.data$obs_tmp_k.x-pred$predictions)^2)
-  
-  # Bind metric data to frame
-  metric.data <- rbind(metric.data, data.frame(i,error))
-}
-
-# Rename columns in metric data
-colnames(metric.data) <- c("num.trees","error")
-
-# Save the metric data here
-# First, grab and format the current time
-currentTime <- Sys.time()
-currentTime <- gsub(" ", "_", currentTime)
-currentTime <- gsub(":", "-", currentTime)
-filename <- paste0("./data/", "rf_tree_params_", currentTime, ".RDS")
-
-print(paste0("saving metric data as ", filename, "..."))
-saveRDS(metric.data, file = filename)
-
-
-
-#Print out optimal hyperparameter
-metric.data1 <- metric.data
-metric.data1 <- metric.data1[2:nrow(metric.data1),] #remove 0,0,0,0 row
-which.min.error <- which.min(metric.data1$error)
-best.parameters <- metric.data1[which.min.error,]
-print(paste("Ideal number of trees = ", best.parameters$num.trees,
-            ", with an error of", best.parameters$error))
-
-### Plot Variable Importance for 10 pixels
-my.pixel <- sample.cells[5,1]
-best.hyperparameters <- readRDS(file.choose())
-best.hyperparameters <- best.hyperparameters[2,]
-train.data <- train%>%
-  filter(fcst_cell == my.pixel)
-train.data <- subset(train.data, select = c(-forecast_timestamp,
-                                            -fcst_cell,
-                                            -obs_pr_m_day.x,
-                                            -obs_cell))
-train.data <- na.omit(train.data)
-my.rf <- ranger(obs_tmp_k.x ~ ., # More efficient
-                data = train.data,
-                num.trees = 110,
-                mtry = best.hyperparameters$best.mtry, 
-                min.node.size = best.hyperparameters$best.nodesize,
-                sample.fraction = best.hyperparameters$best.samplefrac,
-                num.threads = 16,
-                importance = 'impurity')
-#View VarImpPlot
-plotting.data <- as.data.frame(my.rf$variable.importance)
-plotting.data <- plotting.data%>%
-  mutate(variable = rownames(plotting.data))
-
-plotting.data%>%
-  ggplot()+
-  geom_point(mapping = aes(x = variable, y = my.rf$variable.importance))+
-  coord_flip()
-
-
-
-#### TRAIN RF WITH FIRST 5 PRINCIPAL COMPONENTS
-
-#read in pcs5 data
-pcs5 <- readRDS("./data/PC5_transformed_data.RDS")
-
-metric.data <- data.frame(0,0,0,0)
-colnames(metric.data) <- c("i", "j", "k", "error")
-count <- 0
-
-for (i in 1:5){ #range of mtry, down to 5 predictor variables possible
-  for (j in c(10,100,1000,10000,100000,1000000)){ #range of nodesizes
-    for (k in c(0.5,0.6,0.7,0.8,0.9,1)) { #range of sample fractions
-      
-      count <- count + 1
-      cat(sprintf("\n\n MODEL %f\n", count))
-      
-      rf <- ranger(obs_tmp_k ~ ., # More efficient
-                   data = pcs5,
-                   num.trees = 110, # Adjust this later
-                   mtry = i, 
-                   min.node.size = j,
-                   sample.fraction = k,
-                   num.threads = 16, # 16/20 threads on Alex machine
-                   oob.error = TRUE) # use OOB error for cross validation
-      
-      # Get OOB
-      error <- rf$prediction.error
-      cat(sprintf("ERROR: %f\n", error))
-      
-      # Bind metric data to frame
-      metric.data <- rbind(metric.data, data.frame(i,j,k,error))
-    }
-  }
-}
-
-# Rename columns in metric data
-colnames(metric.data) <- c("mtry","nodesize","samplefrac","error")
-
-# Save the metric data here
-# First, grab and format the current time
-currentTime <- Sys.time()
-currentTime <- gsub(" ", "_", currentTime)
-currentTime <- gsub(":", "-", currentTime)
-filename <- paste0("./data/", "rf_pc_parameters_", currentTime, ".RDS")
-
-# Don't need to save in the loop like this
-#print(paste0("saving metric data as ", filename, "..."))
-#saveRDS(metric.data, file = filename)
-
-
-#Print out optimal hyperparameters.
-metric.data1 <- metric.data
-metric.data1 <- metric.data1[2:nrow(metric.data1),] #remove 0,0,0,0 row
-which.min.error <- which.min(metric.data1$error)
-best.parameters <- metric.data1[which.min.error,]
-print(paste("The most ideal hyperparameters are mtry = ", best.parameters$mtry,
-            ", nodesize = ", best.parameters$nodesize,
-            ", bootstrap resample size = ", best.parameters$samplefrac,
-            ", with an error of", best.parameters$error,
-            ", vs qm error of", qm.mse))
-
-# save these for use in the next step!
-best.mtry <- best.parameters$mtry
-best.nodesize <- best.parameters$nodesize
-best.samplefrac <- best.parameters$samplefrac
-
-rf.mse <- best.parameters$error
-min.cell.errors <- rbind(min.cell.errors, data.frame(rf.mse, qm.mse, base.mse,
-                                                     best.mtry,
-                                                     best.nodesize,
-                                                     best.samplefrac))
-gc()
-
-saveRDS(min.cell.errors, "./data/error_pcs_RF.RDS")
-
-
+# ####Test on test data
+# 
+# # Select a single point
+# test.data <- test %>%
+#   filter(fcst_cell == sample.cells[1:10,1])
+# 
+# test.data <- na.omit(test.data)
+# 
+# rf <- ranger(obs_tmp_k.x ~ ., # More efficient
+#              data = train.data,
+#              num.trees = 110, # Adjust this later
+#              mtry = min.cell.errors[11,"best.mtry"], 
+#              min.node.size = min.cell.errors[11,"best.nodesize"],
+#              sample.fraction = min.cell.errors[11,"best.samplefrac"],
+#              num.threads = 16, # 16/20 threads on Alex machine
+#              oob.error = TRUE)
+# 
+# pred <- predict(rf, data = test.data)
+# 
+# error <- mean((test.data$obs_tmp_k.x - pred$predictions)^2)
+# #error = 33
+# 
+# # test for num-trees
+# metric.data <- data.frame(0,0)
+# colnames(metric.data) <- c("i","error")
+# count <- 0
+# 
+# for (i in seq(50, 200, by = 10)) {
+#   count <- count + 1
+#   cat(sprintf("\n\n\n MODEL %f \n", count))
+#   
+#   rf <- ranger(obs_tmp_k.x ~ ., # More efficient
+#                data = train.data,
+#                num.trees = i,
+#                mtry = best.mtry, 
+#                min.node.size = best.nodesize,
+#                sample.fraction = best.samplefrac,
+#                num.threads = 16) # 16/20 threads on Alex machine
+#   
+#   # Generate predictions on test data and find MSE
+#   pred <- predict(rf, data = test.data)
+#   error <- mean((test.data$obs_tmp_k.x-pred$predictions)^2)
+#   
+#   # Bind metric data to frame
+#   metric.data <- rbind(metric.data, data.frame(i,error))
+# }
+# 
+# # Rename columns in metric data
+# colnames(metric.data) <- c("num.trees","error")
+# 
+# # Save the metric data here
+# # First, grab and format the current time
+# currentTime <- Sys.time()
+# currentTime <- gsub(" ", "_", currentTime)
+# currentTime <- gsub(":", "-", currentTime)
+# filename <- paste0("./data/", "rf_tree_params_", currentTime, ".RDS")
+# 
+# print(paste0("saving metric data as ", filename, "..."))
+# saveRDS(metric.data, file = filename)
+# 
+# 
+# 
+# #Print out optimal hyperparameter
+# metric.data1 <- metric.data
+# metric.data1 <- metric.data1[2:nrow(metric.data1),] #remove 0,0,0,0 row
+# which.min.error <- which.min(metric.data1$error)
+# best.parameters <- metric.data1[which.min.error,]
+# print(paste("Ideal number of trees = ", best.parameters$num.trees,
+#             ", with an error of", best.parameters$error))
+# 
+# ### Plot Variable Importance for 10 pixels
+# my.pixel <- sample.cells[5,1]
+# best.hyperparameters <- readRDS(file.choose())
+# best.hyperparameters <- best.hyperparameters[2,]
+# train.data <- train%>%
+#   filter(fcst_cell == my.pixel)
+# train.data <- subset(train.data, select = c(-forecast_timestamp,
+#                                             -fcst_cell,
+#                                             -obs_pr_m_day.x,
+#                                             -obs_cell))
+# train.data <- na.omit(train.data)
+# my.rf <- ranger(obs_tmp_k.x ~ ., # More efficient
+#                 data = train.data,
+#                 num.trees = 110,
+#                 mtry = best.hyperparameters$best.mtry, 
+#                 min.node.size = best.hyperparameters$best.nodesize,
+#                 sample.fraction = best.hyperparameters$best.samplefrac,
+#                 num.threads = 16,
+#                 importance = 'impurity')
+# #View VarImpPlot
+# plotting.data <- as.data.frame(my.rf$variable.importance)
+# plotting.data <- plotting.data%>%
+#   mutate(variable = rownames(plotting.data))
+# 
+# plotting.data%>%
+#   ggplot()+
+#   geom_point(mapping = aes(x = variable, y = my.rf$variable.importance))+
+#   coord_flip()
+# 
+# 
+# 
+# #### TRAIN RF WITH FIRST 5 PRINCIPAL COMPONENTS
+# 
+# #read in pcs5 data
+# pcs5 <- readRDS("./data/PC5_transformed_data.RDS")
+# 
+# metric.data <- data.frame(0,0,0,0)
+# colnames(metric.data) <- c("i", "j", "k", "error")
+# count <- 0
+# 
+# for (i in 1:5){ #range of mtry, down to 5 predictor variables possible
+#   for (j in c(10,100,1000,10000,100000,1000000)){ #range of nodesizes
+#     for (k in c(0.5,0.6,0.7,0.8,0.9,1)) { #range of sample fractions
+#       
+#       count <- count + 1
+#       cat(sprintf("\n\n MODEL %f\n", count))
+#       
+#       rf <- ranger(obs_tmp_k ~ ., # More efficient
+#                    data = pcs5,
+#                    num.trees = 110, # Adjust this later
+#                    mtry = i, 
+#                    min.node.size = j,
+#                    sample.fraction = k,
+#                    num.threads = 16, # 16/20 threads on Alex machine
+#                    oob.error = TRUE) # use OOB error for cross validation
+#       
+#       # Get OOB
+#       error <- rf$prediction.error
+#       cat(sprintf("ERROR: %f\n", error))
+#       
+#       # Bind metric data to frame
+#       metric.data <- rbind(metric.data, data.frame(i,j,k,error))
+#     }
+#   }
+# }
+# 
+# # Rename columns in metric data
+# colnames(metric.data) <- c("mtry","nodesize","samplefrac","error")
+# 
+# # Save the metric data here
+# # First, grab and format the current time
+# currentTime <- Sys.time()
+# currentTime <- gsub(" ", "_", currentTime)
+# currentTime <- gsub(":", "-", currentTime)
+# filename <- paste0("./data/", "rf_pc_parameters_", currentTime, ".RDS")
+# 
+# # Don't need to save in the loop like this
+# #print(paste0("saving metric data as ", filename, "..."))
+# #saveRDS(metric.data, file = filename)
+# 
+# 
+# #Print out optimal hyperparameters.
+# metric.data1 <- metric.data
+# metric.data1 <- metric.data1[2:nrow(metric.data1),] #remove 0,0,0,0 row
+# which.min.error <- which.min(metric.data1$error)
+# best.parameters <- metric.data1[which.min.error,]
+# print(paste("The most ideal hyperparameters are mtry = ", best.parameters$mtry,
+#             ", nodesize = ", best.parameters$nodesize,
+#             ", bootstrap resample size = ", best.parameters$samplefrac,
+#             ", with an error of", best.parameters$error,
+#             ", vs qm error of", qm.mse))
+# 
+# # save these for use in the next step!
+# best.mtry <- best.parameters$mtry
+# best.nodesize <- best.parameters$nodesize
+# best.samplefrac <- best.parameters$samplefrac
+# 
+# rf.mse <- best.parameters$error
+# min.cell.errors <- rbind(min.cell.errors, data.frame(rf.mse, qm.mse, base.mse,
+#                                                      best.mtry,
+#                                                      best.nodesize,
+#                                                      best.samplefrac))
+# gc()
+# 
+# saveRDS(min.cell.errors, "./data/error_pcs_RF.RDS")
+# 
+# 
 
