@@ -91,7 +91,7 @@ for (i in sample.cells$fcst_cell) {
   # increase the model's performance.
   
   metric.data <- data.frame(0,0,0,0)
-  colnames(metric.data) <- c("i", "j", "k", "error")
+  colnames(metric.data) <- c("m", "j", "k", "error")
   count <- 0
   
   #First trial run
@@ -108,19 +108,20 @@ for (i in sample.cells$fcst_cell) {
  
 
   for (i in 15){ #range of mtry, down to 18 as we are not using x,y
-    for (j in c(2,3,4,5,6,7,8)){ #range of nodesizes
+    for (j in c(3)){ #range of nodesizes
       for (k in c(1)) { #range of sample fractions
+        for (m in c(100, 200, 300, 400, 500, 750, 1000, 2000)) {}
         
         count <- count + 1
         cat(sprintf("\n\n MODEL %f\n", count))
         
         rf <- ranger(bias.t ~ ., # More efficient
                      data = train.data,
-                     num.trees = 100, # Adjust this later
+                     num.trees = m, # Adjust this later
                      mtry = i, 
                      min.node.size = j,
                      sample.fraction = k,
-                     num.threads = 32, # 20 threads on Alex machine
+                     num.threads = 36, # 20 threads on Alex machine
                      oob.error = TRUE) # use OOB error for cross validation
         
         # Get OOB
@@ -128,7 +129,7 @@ for (i in sample.cells$fcst_cell) {
         cat(sprintf("ERROR: %f\n", error))
         
         # Bind metric data to frame
-        metric.data <- rbind(metric.data, data.frame(i,j,k,error))
+        metric.data <- rbind(metric.data, data.frame(m,j,k,error))
       }
     }
   }
@@ -183,11 +184,11 @@ print(paste0("saving as ", filename, "..."))
 saveRDS(min.cell.errors, file = filename)
 
 
-# ####Test on test data
-# 
-# # Select a single point
-# test.data <- test %>%
-#   filter(fcst_cell == sample.cells[1:10,1])
+####Test on test data
+
+# Select a single point
+test.data <- test %>%
+  filter(fcst_cell == sample.cells[1:10,1])
 # 
 # test.data <- na.omit(test.data)
 # 
