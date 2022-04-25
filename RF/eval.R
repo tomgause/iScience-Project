@@ -10,7 +10,7 @@ library(lubridate)
 
 
 # get RF results
-params <- readRDS("/Users/tomgause/Desktop/iScience_Project/RF/error_Vermont_single.RDS")
+params <- readRDS("/Users/tomgause/Desktop/iScience_Project/RF/rf_params_2022-04-25_00-10-16.RDS")
 params <- params[-1,]
 
 hist(params$best.mtry)
