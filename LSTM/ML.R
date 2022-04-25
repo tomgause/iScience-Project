@@ -64,23 +64,6 @@ train.months <- length(unique(data.all.predictions$index)) # 335
 data <- data.all.predictions[1+24*(0:325),]
 data %>% tail(10)
 
-# test.filtered <- test %>%
-#   filter(lead == 1,
-#          fcst_cell == 259627) %>%
-#   mutate(bias = fcst_tmp_k - obs_tmp_k.x,
-#          index = as_date(forecast_target)) %>%
-#   select(c(bias, index)) %>%
-#   as_tbl_time(index = index)
-# test.months <- length(unique(test.filtered$index)) # 116
-# unique(test.filtered$index) %>% head(10)
-
-
-# train.X <- train.filtered %>% select(-bias)
-# train.y <- train.filtered %>% select(bias)
-# test.X <- test.filtered %>% select(-bias)
-# test.y <- test.filtered %>% select(bias)
-
-
 
 ############################################################################
 # Let's explore the data a little bit, get an idea of what things look like!
@@ -135,7 +118,7 @@ tidy_acf <- function(data, value, lags = 0:20) {
   return(ret)
 }
 
-# Get con
+# Get confidence
 alpha <- 0.95
 max_lag <- 12 * 27
 conf.lims <- c(-1,1)*qnorm((1 + alpha)/2)/sqrt(max_lag)
