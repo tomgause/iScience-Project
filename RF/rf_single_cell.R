@@ -35,11 +35,14 @@ sample.cells <- train %>%
   dplyr::select(fcst_cell) %>%
   unique()
 
-min.cell.errors <- data.frame(0,0,0,0,0,0)
-colnames(min.cell.errors) <- c("rf.mse", "qm.mse", "base.mse",
-                               "best.mtry", "best.nodesize", "best.samplefrac")
+min.cell.errors <- data.frame(0,0,0,0)
+colnames(min.cell.errors) <- c("best.mtry", "best.nodesize", "best.samplefrac", "best.error")
 
-for (i in sample.cells[1,]) {
+print("experiment ehre")
+print(sample.cells[1,])
+print(sample.cells)
+
+for (i in sample.cells$fcst_cell) {
   cell <- i
   print(cell)
   
@@ -154,22 +157,22 @@ for (i in sample.cells[1,]) {
   print(paste("The most ideal hyperparameters are mtry = ", best.parameters$mtry,
               ", nodesize = ", best.parameters$nodesize,
               ", bootstrap resample size = ", best.parameters$samplefrac,
-              ", with an error of", best.parameters$error,
-              ", vs qm error of", qm.mse))
+              ", with an error of", best.parameters$error))
   
   # save these for use in the next step!
   best.mtry <- best.parameters$mtry
   best.nodesize <- best.parameters$nodesize
   best.samplefrac <- best.parameters$samplefrac
+  best.error <- best.parameters$error
   
   rf.mse <- best.parameters$error
-  min.cell.errors <- rbind(min.cell.errors, data.frame(rf.mse, qm.mse, base.mse,
-                                                       best.mtry,
+  min.cell.errors <- rbind(min.cell.errors, data.frame(best.mtry,
                                                        best.nodesize,
-                                                       best.samplefrac))
-  gc()
+                                                       best.samplefrac,
+                                                       best.error))
 }
-saveRDS(min.cell.errors, "/storage/tgause/iScience_tom/iScience_Project/data/error_Vermont/single.RDS")
+
+saveRDS(min.cell.errors, file = "/storage/tgause/iScience_tom/iScience_Project/data/error_Vermont_single.RDS")
 
 
 # ####Test on test data

@@ -685,8 +685,8 @@ sample_predictions_lstm_tbl <- rolling_origin_resamples %>%
   mutate(predict = map(splits, predict_keras_lstm, epochs = 300))
 
 # Save!
-save(sample_predictions_lstm_tbl,
-     file = "/Users/tomgause/Desktop/iScience_data/sample_predictions_lstm_tbl.RDS")
+saveRDS(sample_predictions_lstm_tbl,
+     file = "/storage/tgause/iScience_tom/iScience_Project/data/sample_predictions_lstm_tbl.RDS")
 
 # Let's get the sample RMSE
 sample_rmse_tbl <- sample_predictions_lstm_tbl %>%
