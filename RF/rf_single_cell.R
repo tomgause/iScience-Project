@@ -107,9 +107,9 @@ for (i in sample.cells$fcst_cell) {
   
  
 
-  for (i in 12:18){ #range of mtry, down to 18 as we are not using x,y
-    for (j in c(10,50,100,500,1000,10000,100000)){ #range of nodesizes
-      for (k in c(0.7,0.8,0.9,1)) { #range of sample fractions
+  for (i in 15){ #range of mtry, down to 18 as we are not using x,y
+    for (j in c(2,3,4,5,6,7,8)){ #range of nodesizes
+      for (k in c(1)) { #range of sample fractions
         
         count <- count + 1
         cat(sprintf("\n\n MODEL %f\n", count))
@@ -172,7 +172,15 @@ for (i in sample.cells$fcst_cell) {
                                                        best.error))
 }
 
-saveRDS(min.cell.errors, file = "/storage/tgause/iScience_tom/iScience_Project/data/error_Vermont_single.RDS")
+currentTime <- Sys.time()
+currentTime <- gsub(" ", "_", currentTime)
+currentTime <- gsub(":", "-", currentTime)
+
+#format filename
+filename <- paste0("/storage/tgause/iScience_tom/iScience_Project/RF/", "rf_params_", currentTime, ".RDS")
+
+print(paste0("saving as ", filename, "..."))
+saveRDS(min.cell.errors, file = filename)
 
 
 # ####Test on test data

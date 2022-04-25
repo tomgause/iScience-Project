@@ -11,6 +11,6 @@ echo "Job ID: ${SLURM_JOB_ID}"
 echo "Node: ${SLURMD_NODENAME}" 
 echo "Starting: "`date +"%D %T"` 
 # Your calculations here 
-Rscript /storage/tgause/iScience_tom/iScience_Project/rf_single_cell.R
+Rscript /storage/tgause/iScience_tom/iScience_Project/RF/rf_single_cell.R
 # End of job info 
 echo "Ending: "`date +"%D %T"`
