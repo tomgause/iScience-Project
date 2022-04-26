@@ -84,6 +84,15 @@ mytest1 <- train1%>%
 test <- test%>%
   filter(forecast_target > "2014-02-01")
 
+#climate.norm method 2: only use train data for climate norm calculation!
+climate.norm2 <- train%>%
+  dplyr::select(target_month, obs_tmp_k, fcst_cell, forecast_target)%>%
+  unique()
+
+climate.norm2 <- climate.norm2%>%
+  group_by(fcst_cell, target_month)%>%
+  summarize(mean_temp = mean(obs_tmp_k))
+
 # Select and store all forecast cells
 sample.cells <- test %>%
   dplyr::select(fcst_cell) %>%
@@ -100,18 +109,29 @@ for (cell in sample.cells[,1]) {
   cell.data <- test %>%
     filter(fcst_cell == cell)
   
-  climate.norm.cell <- climate.norm%>%
-    filter(fcst_cell == cell)%>%
-    ungroup()%>%
-    dplyr::select(forecast_target,cummean_temp)
+  #climate.norm method 1
+  # climate.norm.cell <- climate.norm%>%
+  #   filter(fcst_cell == cell)%>%
+  #   ungroup()%>%
+  #   dplyr::select(forecast_target,cummean_temp)
+  # climate.norm.preds <- left_join(cell.data, climate.norm.cell, 
+  #                                 by = "forecast_target")
+  
+  #climate norm method 2
+  climate.norm.cell <- climate.norm2%>%
+    filter(fcst_cell == cell)
   climate.norm.preds <- left_join(cell.data, climate.norm.cell, 
-                                  by = "forecast_target")
+                                  by = c("fcst_cell", "target_month"))
   
   # Generate mse for qm, base, and climate.norm against obs
   qm.mse <- mean((cell.data$obs_tmp_k - cell.data$fcst_qm_tmp_k)^2)
   base.mse <- mean((cell.data$obs_tmp_k - cell.data$fcst_tmp_k)^2)
+  #climate.norm method 1
+  # climate.norm.mse <- mean((climate.norm.preds$obs_tmp_k - 
+  #                             climate.norm.preds$cummean_temp)^2)
+  #climate.norm method 2
   climate.norm.mse <- mean((climate.norm.preds$obs_tmp_k - 
-                              climate.norm.preds$cummean_temp)^2)
+                              climate.norm.preds$mean_temp)^2)
   
   # Generate predictions to find rf mse against obs
   pred <- predict(rf.all, data = cell.data)
@@ -134,6 +154,9 @@ mean.errors <- mean.errors %>%
 colnames(mean.errors)[1] = "MSE"
 mean.errors$bias.correction.method <- c("Quantile Matching","Base","Climate Norm","RF All Pixels")
 
+mean.errors.noclimatenorm <- mean.errors%>%
+  filter(bias.correction.method != "Climate Norm")
+
 #generate plot
 mean.errors %>%
   ggplot(mapping = aes(x = bias.correction.method, y = MSE))+
@@ -141,7 +164,7 @@ mean.errors %>%
   xlab("Bias Correction Method")+
   theme_test()+
   theme(plot.title = element_text(hjust = 0.5))+
-  ggtitle("MSE for Various Bias Correction Methods, \n Tested on 2013-2021 Data")
+  ggtitle("MSE for Various Bias Correction Methods, \n Tested on 2014-2021 Data")
 
 
 # Save results of testing
@@ -153,4 +176,3 @@ filename <- paste0("./data/", "test_results_", currentTime, ".RDS")
 
 # And save!
 saveRDS(cell.error, file = filename)
-
