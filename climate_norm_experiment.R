@@ -10,12 +10,21 @@
 #How does the climate norm compare to quantile matching and original CFSv2 
 #predictions for the entire US?
 
+#install packages
+local({r <- getOption("repos")
+  r["CRAN"] <- "http://cran.r-project.org"
+  options(repos=r)
+})
+
+packages <- c("tidyverse", "lubridate", "zoo", "dplyr","rstudioapi")
+install.packages(setdiff(packages, rownames(installed.packages())))
+
+
+#load libraries
 library(tidyverse)
 library(lubridate)
 library(zoo)
 library(dplyr)
-library(sf)
-library(terra)
 library(rstudioapi)
 
 ########################################
@@ -118,6 +127,8 @@ mean.errors <- mean.errors %>%
   mutate(bias.correction.method = rownames(mean.errors))
 colnames(mean.errors)[1] = "MSE"
 mean.errors$bias.correction.method <- c("Quantile Matching","Base","Climate Norm")
+
+saveRDS(mean.errors, "climate_norm_experiment_output.R")
 
 #generate plot
 mean.errors %>%
