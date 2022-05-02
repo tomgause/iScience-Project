@@ -25,14 +25,14 @@ library(tidyverse)
 library(lubridate)
 library(zoo)
 library(dplyr)
-library(rstudioapi)
 
 ########################################
 #read and concat all data
 ########################################
 
 #set working directory to location of make_data_dev.R
-setwd(dirname(getActiveDocumentContext()$path)) 
+#setwd(dirname(getActiveDocumentContext()$path)) 
+setwd(getwd())
 
 #get paths to all training data
 df <- c(list.files(path = "./data/old",
