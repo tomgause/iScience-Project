@@ -54,35 +54,40 @@ y_test <- to_categorical(y_test, num_classes)
 
 #replace x_train with our data
 new_x_train <- readRDS("C:/Users/bestbuy/AppData/Local/Packages/microsoft.windowscommunicationsapps_8wekyb3d8bbwe/LocalState/Files/S0/120/Attachments/sample.x.train[7437].RDS")
+new_y_train <- readRDS("C:/Users/bestbuy/AppData/Local/Packages/microsoft.windowscommunicationsapps_8wekyb3d8bbwe/LocalState/Files/S0/120/Attachments/sample.y.train[7438].RDS")
 new_img_rows <- 10
 new_img_cols <- 10
 new_input_shape <- c(10, 10, 1)
 
 new_x_train <- new_x_train[,,,5]
 new_x_train <- array_reshape(new_x_train, c(nrow(new_x_train), new_img_rows, new_img_cols, 1))
-new_y_train <- y_train[1:3,1:3]
-new_num_classes <- 3
+new_y_train <- new_y_train[,,,5]
+new_y_train <- array_reshape(new_y_train, c(nrow(new_y_train), new_img_rows, new_img_cols, 1))
 
 # Define model
 model <- keras_model_sequential() %>%
-  layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'relu',
-                input_shape = new_input_shape) %>% #INPUT LAYER
-  #filter = number of filters used -> number of resultant feature maps
-  #kernel_size = how large each filter is
-  layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = 'relu') %>% 
-  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
-  # pool size: factor to which downsize input data
-  layer_dropout(rate = 0.25) %>% #prevent overfitting
-  layer_flatten() %>% #turns cube into list
-  layer_dense(units = 128, activation = 'relu') %>% 
-  layer_dropout(rate = 0.5) %>% #prevent overfitting
-  layer_dense(units = new_num_classes, activation = 'softmax')
+  layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'tanh',
+                input_shape = new_input_shape) %>%
+  layer_max_pooling_2d(pool_size = c(2,2))%>%
+  layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'tanh') %>%
+  layer_upsampling_2d(size = c(6,6))%>%
+  layer_conv_2d(filters = 1, kernel_size = c(3,3), activation = 'linear')
+  
+#Layer Notes
+#filter = number of filters used -> number of resultant feature maps
+#kernel_size = how large each filter is
+# downsampling = max pooling = decreases dimensions
+# upsampling = increases dimensions
+# pool size: factor to which downsize input data
+# prevent overfitting
+#layer_dropout #prevent overfitting
+#layer_flatten #turns cube into list
 
 # Compile model
 model %>% compile(
-  loss = loss_categorical_crossentropy,
+  loss = "mse",
   optimizer = optimizer_adadelta(), #how to choose?
-  metrics = c('accuracy')
+  metrics = c('mse')
 )
 
 # Train model
