@@ -84,8 +84,7 @@ rm(hindcast_all)
 
 # Create Bias columns. We'll be predicting for this (these) valaue
 hindcast_subset <- hindcast_subset %>%
-  mutate(bias.t = obs_tmp_k - fcst_tmp_k,
-         bias.p = obs_pr_m_day - fcst_pr_m_day)
+  mutate(bias.t = obs_tmp_k - fcst_tmp_k)
 
 #add lag years to join by
 #lagn.t -->average predicted bias n month(s) ago
