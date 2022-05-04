@@ -57,10 +57,9 @@ new_x_train <- readRDS("C:/Users/bestbuy/AppData/Local/Packages/microsoft.window
 new_y_train <- readRDS("C:/Users/bestbuy/AppData/Local/Packages/microsoft.windowscommunicationsapps_8wekyb3d8bbwe/LocalState/Files/S0/120/Attachments/sample.y.train[7438].RDS")
 new_img_rows <- 10
 new_img_cols <- 10
-new_input_shape <- c(10, 10, 1)
+new_input_shape <- c(10, 10, 5)
 
-new_x_train <- new_x_train[,,,5]
-new_x_train <- array_reshape(new_x_train, c(nrow(new_x_train), new_img_rows, new_img_cols, 1))
+new_x_train <- array_reshape(new_x_train, c(nrow(new_x_train), new_img_rows, new_img_cols, 5))
 new_y_train <- new_y_train[,,,5]
 new_y_train <- array_reshape(new_y_train, c(nrow(new_y_train), new_img_rows, new_img_cols, 1))
 
