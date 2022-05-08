@@ -1,0 +1,100 @@
+---
+title: "PCA (Principal Components Analysis)"
+author: "Acadia Hegedus, Katelyn Mei, and Tom Gaus"
+date: "5/8/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+Set working directory to file location.
+```{r}
+setwd("C:/Users/tgause/iScience_Project")
+```
+
+Read in relevant libraries. 
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(ipred)
+library(randomForest)
+library(ranger)
+```
+
+Load in our data sets. 
+```{r}
+training.data <- readRDS("./data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
+testing.data <- readRDS("./data/test_subset_2022-04-18_10-27-26.RDS")
+
+training.data <- na.omit(training.data)
+
+testing.data <- na.omit(testing.data)
+
+training.data <- training.data%>%
+  dplyr::select(-obs_cell)
+
+testing.data <- testing.data%>%
+  dplyr::select(-fcst_qm_pr_m_day,-fcst_qm_tmp_k)
+
+all.data <- rbind(training.data, testing.data)
+
+#change forecast_target to just year so we can plug into PCA
+all.data$forecast_target <- as.numeric(substring(all.data$forecast_target,1,4))
+```
+
+
+Predictor variables to use are: 
+- x
+- y
+- forecast_target
+- target_month
+- lead
+- fcst_tmp_k
+- elevation 
+- c(lag1--> lag12) 
+- fcst_pr_m_day 
+***lag1 : bias.t one month ago***
+
+Target variable:
+- bias.t (= obs_tmp_k - fcst_tmp_k)
+
+Run a PCA, to explore relationship between variables. 
+```{r}
+data.for.pca <- all.data%>%
+  dplyr::select(-fcst_cell,-obs_tmp_k,-obs_pr_m_day,
+                -forecast_timestamp_rm,-bias.t, -bias.p)
+
+pca1 <- prcomp(data.for.pca, scale = TRUE)
+
+pca1 #see outputs of PCA
+
+plot(pca1) #see how much variance is explained by first few PCs
+
+plot(cumsum(pca1$sdev^2/4))
+
+```
+```{r}
+pca1results <- data.frame(pca1$rotation[,1])
+
+pca1results <- pca1results%>%
+  mutate(variable = rownames(pca1results))
+
+colnames(pca1results)[1] <- "pc_1_weight"
+
+pca1results$pc_1_weight <- round(pca1results$pc_1_weight, digits = 4)
+
+pca1results%>%
+  ggplot(mapping = aes(x = reorder(variable,pc_1_weight), y = pc_1_weight, label = pc_1_weight))+
+  geom_bar(stat = 'identity',fill="#46c7db",color = "#46c7db")+
+  geom_text(size=6)+
+  coord_flip()+
+  xlab("Variable")+
+  ylab("PC 1 Weight")+
+  theme_test()+
+  theme(plot.title = element_text(hjust = 0.5, size = 18), axis.text = element_text(size = 15), axis.title.x = element_text(size = 15), axis.title.y = element_text(size = 15))+
+  ggtitle("1st Principle Component Weights")
+```
+
+
