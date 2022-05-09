@@ -1,6 +1,6 @@
 ### make_data.R
 # Tom Gause, Acadia Hegedus, and Katelyn Mei
-# last edited 4/18/2022
+# last edited 4/17/2022
 
 # # old data. Copy and past this inside iScience_Project/data
 # curl https://wsim-datasets.s3.us-east-2.amazonaws.com/hindcasts_usa.ta --output hindcast_data.tar;
@@ -76,9 +76,23 @@ hindcast_subset$target_month <- as.numeric(hindcast_subset$target_month)
 
 
 gc()
+
+#correct lead time to be actual value! right now we just have lead = 1
+hindcast_subset <- hindcast_subset%>%
+  mutate(timestamp_month = as.numeric(substring(hindcast_subset$forecast_timestamp,5,6)))
+
+hindcast_subset <- hindcast_subset%>%
+  mutate(lead_val = hindcast_subset$target_month - hindcast_subset$timestamp_month)
+
+hindcast_subset$lead <- ifelse(hindcast_subset$lead_val>0,hindcast_subset$lead_val,
+                               12 + hindcast_subset$lead_val)
+
+hindcast_subset <- hindcast_subset%>%
+  select(-timestamp_month,-lead_val)
+
 rm(hindcast_all)
 
-# Create Bias columns. We'll be predicting for this (these) valaue
+# Create Bias columns. We'll be predicting for this (these) value
 hindcast_subset <- hindcast_subset %>%
   mutate(bias.t = obs_tmp_k - fcst_tmp_k,
          bias.p = obs_pr_m_day - fcst_pr_m_day)

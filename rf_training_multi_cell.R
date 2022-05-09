@@ -1,6 +1,6 @@
-### rf development scripts
-# Tom Gause
-# 4/11/2022
+### rf_training_multi_cell
+# Tom Gause, Acadia Hegedus, and Katelyn Mei
+# 5/9/2022
 
 library(data.table)
 library(rvest)
@@ -29,9 +29,6 @@ setwd("C:/Users/tgause/iScience_Project")
 # Load in our data sets.
 # For the first experiment, let's use a single cell!
 train <- readRDS("./data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
-#test <- readRDS("./data/test_subset_2022-04-06_01-19-58.RDS") #AND THIS
-
-
 
 # Let's train a single random forest on multiple pixels.
 # For this run, we chose the pixels in Vermont.

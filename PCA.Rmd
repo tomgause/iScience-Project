@@ -1,7 +1,7 @@
 ---
 title: "PCA (Principal Components Analysis)"
 author: "Acadia Hegedus, Katelyn Mei, and Tom Gaus"
-date: "5/8/2022"
+date: "5/9/2022"
 output: html_document
 ---
 
@@ -26,7 +26,7 @@ library(ranger)
 Load in our data sets. 
 ```{r}
 training.data <- readRDS("./data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
-testing.data <- readRDS("./data/test_subset_2022-04-18_10-27-26.RDS")
+testing.data <- readRDS("./data/test_subset_2022-05-09_19-15-23.RDS")
 
 training.data <- na.omit(training.data)
 

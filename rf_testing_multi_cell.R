@@ -1,4 +1,4 @@
-### rf testing
+### rf_testing_multi_cell
 # Tom Gause, Acadia Hegedus, and Katelyn Mei
 # 4/19/2022
 
