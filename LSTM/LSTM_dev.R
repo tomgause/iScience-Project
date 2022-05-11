@@ -390,7 +390,7 @@ model %>% compile(
   loss = "mae"
 )
 
-history <- model %>% fit_generator(
+history <- model %>% fit (
   train.gen,
   steps_per_epoch = 500,
   epochs = 20,
