@@ -165,7 +165,7 @@ optimal_lag_setting # 47
 # Let's create a cross validation plan by offsetting the window
 # used to select sequential sub-samples. We're essentially dealing
 # with the fact that there's no future test data available by creating
-# multiple synthetic "fututures"--this process is called "backtesting"
+# multiple synthetic "futures"--this process is called "backtesting"
 # We'll use a procedure that uses the rolling_origin() function
 
 

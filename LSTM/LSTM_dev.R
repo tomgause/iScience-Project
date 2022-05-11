@@ -32,10 +32,11 @@ library(tensorflow)
 # Make all the data
 #train <- readRDS("/Users/tomgause/Desktop/iScience_tom/iScience_Project/data/VT_train.RDS")
 #test <- readRDS("/Users/tomgause/Desktop/iScience_tom/iScience_Project/data/VT_test.RDS")
-train <- readRDS("C:/Users/tgause/iScience_Project/data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
+#train <- readRDS("C:/Users/tgause/iScience_Project/data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
+train <- readRDS("/storage/tgause/iScience_tom/iScience_Project/data/VT_train.RDS")
 
-train <- train[order(train$forecast_target, lead, fcst_cell),]
-test <- test[order(test$forecast_target, lead, fcst_cell),]
+train <- train[order(train$forecast_target),]
+#test <- test[order(test$forecast_target, lead, fcst_cell),]
 gc()
 
 train.all.predictions <- train %>%
@@ -53,127 +54,127 @@ train.months <- unique(train.all.predictions$index)[1:320] # 335 before filter
 train.all.predictions <- train.all.predictions %>%
   filter(index %in% train.months)
 
-test.all.predictions <- test %>%
-  select(c(fcst_tmp_k, obs_tmp_k, forecast_target, lead, fcst_cell)) %>%
-  mutate(value = fcst_tmp_k - obs_tmp_k,
-         index = as_date(forecast_target)) %>%
-  dplyr::group_by(forecast_target, fcst_cell, lead) %>%
-  mutate(value = mean(value)) %>%
-  dplyr::ungroup() %>%
-  select(c(value, index, fcst_cell, lead)) %>%
-  as_tbl_time(index = index, lead = lead, fcst_cell = fcst_cell)
-test.months <- length(unique(test.all.predictions$index))
+#test.all.predictions <- test %>%
+#  select(c(fcst_tmp_k, obs_tmp_k, forecast_target, lead, fcst_cell)) %>%
+#  mutate(value = fcst_tmp_k - obs_tmp_k,
+#         index = as_date(forecast_target)) %>%
+#  dplyr::group_by(forecast_target, fcst_cell, lead) %>%
+#  mutate(value = mean(value)) %>%
+#  dplyr::ungroup() %>%
+#  select(c(value, index, fcst_cell, lead)) %>%
+#  as_tbl_time(index = index, lead = lead, fcst_cell = fcst_cell)
+#test.months <- length(unique(test.all.predictions$index))
 
 # We have 24x duplicate data for each lead-cell-index.
 # By taking the unique data only, we fix this issue.
 train <- train.all.predictions %>% unique()
-test <- test.all.predictions %>% unique()
+#test <- test.all.predictions %>% unique()
 
-rm(train.all.predictions, test.all.predictions)
+rm(train.all.predictions)#, test.all.predictions)
 gc()
 
 train %>% head(2)
-test %>% head(2)
+#test %>% head(2)
 
-############################################################################
-############################################################################
-# Let's take a look at the data!
+# ############################################################################
+# ############################################################################
+# # Let's take a look at the data!
 
-p1 <- train %>%
-  filter (lead == 1, fcst_cell == 259627) %>%
-  ggplot(aes(index, value)) +
-  geom_point(color = palette_light()[[1]], alpha = 0.5) +
-  theme_tq() +
-  labs(
-    title = "1982-2010, lead=1, fcst_cell=259627"
-  )
+# p1 <- train %>%
+#   filter (lead == 1, fcst_cell == 259627) %>%
+#   ggplot(aes(index, value)) +
+#   geom_point(color = palette_light()[[1]], alpha = 0.5) +
+#   theme_tq() +
+#   labs(
+#     title = "1982-2010, lead=1, fcst_cell=259627"
+#   )
 
-p2 <- train %>%
-  filter_time("start" ~ "1984") %>%
-  filter(lead == 1, fcst_cell == 259627) %>%
-  ggplot(aes(index, value)) +
-  geom_line(color = palette_light()[[1]], alpha = 0.5) +
-  geom_point(color = palette_light()[[1]]) +
-  geom_smooth(method = "loess", span = 0.2, se = FALSE) +
-  theme_tq() +
-  labs(
-    title = "1982 - 1986 (Zoomed In To Show Cycles), lead=1, fcst_cell=259627",
-  )
+# p2 <- train %>%
+#   filter_time("start" ~ "1984") %>%
+#   filter(lead == 1, fcst_cell == 259627) %>%
+#   ggplot(aes(index, value)) +
+#   geom_line(color = palette_light()[[1]], alpha = 0.5) +
+#   geom_point(color = palette_light()[[1]]) +
+#   geom_smooth(method = "loess", span = 0.2, se = FALSE) +
+#   theme_tq() +
+#   labs(
+#     title = "1982 - 1986 (Zoomed In To Show Cycles), lead=1, fcst_cell=259627",
+#   )
 
-p_title <- ggdraw() +
-  draw_label("CFSv2 Residuals", size = 18, fontface = "bold", colour = palette_light()[[1]])
-plot_grid(p_title, p1, p2, ncol = 1, rel_heights = c(0.1, 1, 1))
+# p_title <- ggdraw() +
+#   draw_label("CFSv2 Residuals", size = 18, fontface = "bold", colour = palette_light()[[1]])
+# plot_grid(p_title, p1, p2, ncol = 1, rel_heights = c(0.1, 1, 1))
 
 
-############################################################################
-# Let's evaluate the ACF and see if LSTM model is a good approach.
-# Autocorrelation function, relation between time series of interest in
-# lagged versions of itself.
+# ############################################################################
+# # Let's evaluate the ACF and see if LSTM model is a good approach.
+# # Autocorrelation function, relation between time series of interest in
+# # lagged versions of itself.
 
-# This function takes tidy time series, extracts values, and returns
-# ACF values in a tibble format.
+# # This function takes tidy time series, extracts values, and returns
+# # ACF values in a tibble format.
 
-tidy_acf <- function(data, value, lags = 0:20) {
+# tidy_acf <- function(data, value, lags = 0:20) {
   
-  value_expr <- enquo(value)
+#   value_expr <- enquo(value)
   
-  acf_values <- data %>%
-    pull(value) %>%
-    acf(lag.max = tail(lags, 1), plot = FALSE) %>%
-    .$acf %>%
-    .[,,1]
+#   acf_values <- data %>%
+#     pull(value) %>%
+#     acf(lag.max = tail(lags, 1), plot = FALSE) %>%
+#     .$acf %>%
+#     .[,,1]
   
-  ret <- tibble(acf = acf_values) %>%
-    rowid_to_column(var = "lag") %>%
-    mutate(lag = lag - 1) %>%
-    filter(lag %in% lags)
+#   ret <- tibble(acf = acf_values) %>%
+#     rowid_to_column(var = "lag") %>%
+#     mutate(lag = lag - 1) %>%
+#     filter(lag %in% lags)
   
-  return(ret)
-}
+#   return(ret)
+# }
 
-# Get confidence
-alpha <- 0.95
-max_lag <- 12 * 27
-conf.lims <- c(-1,1)*qnorm((1 + alpha)/2)/sqrt(max_lag)
+# # Get confidence
+# alpha <- 0.95
+# max_lag <- 12 * 27
+# conf.lims <- c(-1,1)*qnorm((1 + alpha)/2)/sqrt(max_lag)
 
-# Let's plot our values with confidence
-train %>%
-  filter(lead == 1, fcst_cell == 259627) %>%
-  tidy_acf("value", lags = 0:max_lag) %>%
-  ggplot(aes(lag, acf)) +
-  geom_segment(aes(xend = lag, yend = 0), color = palette_light()[[1]]) +
-  geom_hline(yintercept = conf.lims[2], size = 1, color = palette_light()[[5]]) +
-  geom_hline(yintercept = conf.lims[1], size = 1, color = palette_light()[[5]]) +
-  geom_vline(xintercept = 120, size = 3, color = palette_light()[[2]]) +
-  annotate("text", label = "10 Year Mark", x = 130, y = 0.8,
-           color = palette_light()[[2]], size = 6, hjust = 0) +
-  annotate("text", label = "Confidence", x = 210, y = 0.18,
-           color = palette_light()[[5]], size = 4, hjust = 0) +
-  theme_tq() +
-  labs(title = "ACF: CFSv2 Bias, lead=1, fcst_cell=259627")
+# # Let's plot our values with confidence
+# train %>%
+#   filter(lead == 1, fcst_cell == 259627) %>%
+#   tidy_acf("value", lags = 0:max_lag) %>%
+#   ggplot(aes(lag, acf)) +
+#   geom_segment(aes(xend = lag, yend = 0), color = palette_light()[[1]]) +
+#   geom_hline(yintercept = conf.lims[2], size = 1, color = palette_light()[[5]]) +
+#   geom_hline(yintercept = conf.lims[1], size = 1, color = palette_light()[[5]]) +
+#   geom_vline(xintercept = 120, size = 3, color = palette_light()[[2]]) +
+#   annotate("text", label = "10 Year Mark", x = 130, y = 0.8,
+#            color = palette_light()[[2]], size = 6, hjust = 0) +
+#   annotate("text", label = "Confidence", x = 210, y = 0.18,
+#            color = palette_light()[[5]], size = 4, hjust = 0) +
+#   theme_tq() +
+#   labs(title = "ACF: CFSv2 Bias, lead=1, fcst_cell=259627")
 
-train %>%
-  filter(lead == 1, fcst_cell == 259627) %>%
-  tidy_acf("value", lags = 40:60) %>%
-  ggplot(aes(lag, acf)) +
-  #geom_vline(xintercept = 120, size = 3, color = palette_light()[[2]]) +
-  geom_segment(aes(xend = lag, yend = 0), color = palette_light()[[1]]) +
-  geom_point(color = palette_light()[[1]], size = 2) +
-  geom_label(aes(label = acf %>% round(2)), vjust = -1,
-             color = palette_light()[[1]]) +
-  #annotate("text", label = "10 Year Mark", x = 121, y = 0.8,
-  #color = palette_light()[[2]], size = 5, hjust = 0) +
-  theme_tq() +
-  labs(title = "ACF: CFSv2 Bias, lead=1, fcst_cell=259627",
-       subtitle = "Zoomed in on Lags 40 to 60")
+# train %>%
+#   filter(lead == 1, fcst_cell == 259627) %>%
+#   tidy_acf("value", lags = 40:60) %>%
+#   ggplot(aes(lag, acf)) +
+#   #geom_vline(xintercept = 120, size = 3, color = palette_light()[[2]]) +
+#   geom_segment(aes(xend = lag, yend = 0), color = palette_light()[[1]]) +
+#   geom_point(color = palette_light()[[1]], size = 2) +
+#   geom_label(aes(label = acf %>% round(2)), vjust = -1,
+#              color = palette_light()[[1]]) +
+#   #annotate("text", label = "10 Year Mark", x = 121, y = 0.8,
+#   #color = palette_light()[[2]], size = 5, hjust = 0) +
+#   theme_tq() +
+#   labs(title = "ACF: CFSv2 Bias, lead=1, fcst_cell=259627",
+#        subtitle = "Zoomed in on Lags 40 to 60")
 
-# Pull Optimal Lag
-optimal_lag_setting <- data %>%
-  filter(lead == 1, fcst_cell == 259627) %>%
-  tidy_acf("value", lags = 50:150) %>%
-  filter(acf == max(acf)) %>%
-  pull(lag)
-optimal_lag_setting # 72
+# # Pull Optimal Lag
+# optimal_lag_setting <- data %>%
+#   filter(lead == 1, fcst_cell == 259627) %>%
+#   tidy_acf("value", lags = 50:150) %>%
+#   filter(acf == max(acf)) %>%
+#   pull(lag)
+# optimal_lag_setting # 72
 
 ####################################################
 # LSTM Plan
@@ -217,7 +218,7 @@ data.scaled <- train %>%
 
 # We only use the first 240 time steps as training data
 train.scaled <- data.scaled %>%
-  filter(index %in% train.months[1:240])
+  dplyr::filter(index %in% train.months[1:240])
 
 # This is necessary for the agent-based minibatching
 unique.cells <- unique(train$fcst_cell)
@@ -230,7 +231,7 @@ data.matrix <- array(list(), dim=c(9, 51))
 for (i in c(1:9)) {
   for (j in c(1:length(unique.cells))) {
     data.matrix[[i, j]] <- as.matrix(data.scaled %>%
-      filter(lead == i, fcst_cell == unique.cells[j]))[,-2]
+      dplyr::filter(lead == i, fcst_cell == unique.cells[j]))[,-2]
     class(data.matrix[[i,j]]) <- "numeric"
   }
 }
@@ -318,7 +319,7 @@ lead.sample <- 4 # Select 4 lead times
 #   Test: Next 60 timesteps
 #   Validator: Remaining timesteps
 
-train.gen <- generator(
+train.gen = generator(
   data.matrix,
   lookback = lookback,
   delay = delay,
@@ -339,7 +340,7 @@ val.gen = generator(
   batch.size = batch.size
 )
 
-test.gen <- generator(
+test.gen = generator(
   data.matrix,
   lookback = lookback,
   delay = delay,
@@ -377,12 +378,11 @@ evaluate.naive.method()
 
 
 ################################################################################
-# Time to try a simple lSTM!
+# Let's try a GRU model!
 
 
 model <- keras_model_sequential() %>% 
-  layer_flatten(input_shape = c(lookback, 3)) %>% 
-  layer_dense(units = 32, activation = "relu") %>% 
+  layer_gru(units = 32, input_shape = list(NULL, 3)) %>% 
   layer_dense(units = 1)
 
 model %>% compile(
@@ -393,7 +393,10 @@ model %>% compile(
 history <- model %>% fit_generator(
   train.gen,
   steps_per_epoch = 500,
-  epochs = 100,
-  validation_data = va._gen,
+  epochs = 20,
+  validation_data = val.gen,
   validation_steps = val.steps
 )
+
+
+f
