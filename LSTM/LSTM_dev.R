@@ -7,7 +7,7 @@
 
 packages <- c("tidyverse", "glue", "forcats", "timetk", "tidyquant",
               "tibbletime", "cowplot", "recipes", "rsample", "yardstick",
-              "keras")
+              "keras", "tensorflow")
 install.packages(setdiff(packages, rownames(installed.packages()))) 
 
 # Core Tidyverse
@@ -27,10 +27,12 @@ library(rsample)
 library(yardstick) 
 # Modeling
 library(keras)
+library(tensorflow)
 
 # Make all the data
-train <- readRDS("/Users/tomgause/Desktop/iScience_tom/iScience_Project/data/VT_train.RDS")
-test <- readRDS("/Users/tomgause/Desktop/iScience_tom/iScience_Project/data/VT_test.RDS")
+#train <- readRDS("/Users/tomgause/Desktop/iScience_tom/iScience_Project/data/VT_train.RDS")
+#test <- readRDS("/Users/tomgause/Desktop/iScience_tom/iScience_Project/data/VT_test.RDS")
+train <- readRDS("C:/Users/tgause/iScience_Project/data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
 
 train <- train[order(train$forecast_target, lead, fcst_cell),]
 test <- test[order(test$forecast_target, lead, fcst_cell),]
@@ -229,6 +231,7 @@ for (i in c(1:9)) {
   for (j in c(1:length(unique.cells))) {
     data.matrix[[i, j]] <- as.matrix(data.scaled %>%
       filter(lead == i, fcst_cell == unique.cells[j]))[,-2]
+    class(data.matrix[[i,j]]) <- "numeric"
   }
 }
 
@@ -249,15 +252,12 @@ for (i in c(1:9)) {
 generator <- function(data, lookback, delay, min.index, max.index,
                       shuffle = FALSE, batch.size = 1, step = 1,
                       cell.sample = 16, lead.sample = 4) {
-  
-  
   if (is.null(max.index)) {
-    max.index <- nrow(data) - delay - 1
+    max.index <- nrow(data[[1]]) - delay - 1
   }
   i <- min.index + lookback
   
   function() {
-  
     # samples and targets for binding
     all.samples <- array(0,dim=c(cell.sample * lead.sample,
                                  lookback,
@@ -323,7 +323,7 @@ train.gen <- generator(
   lookback = lookback,
   delay = delay,
   min.index = 1,
-  max.index = 240,
+  max.index = 200,
   shuffle = TRUE,
   step = step, 
   batch.size = batch.size
@@ -333,8 +333,8 @@ val.gen = generator(
   data.matrix,
   lookback = lookback,
   delay = delay,
-  min.index = 241,
-  max.index = 300,
+  min.index = 201,
+  max.index = 260,
   step = step,
   batch.size = batch.size
 )
@@ -343,30 +343,30 @@ test.gen <- generator(
   data.matrix,
   lookback = lookback,
   delay = delay,
-  min.index = 301,
+  min.index = 261,
   max.index = NULL,
   step = step,
   batch.size = batch.size
 )
 
 # How many steps to draw from val.gen in order to see the entire validation set
-val.steps <- floor((300 - 241 - lookback) / batch.size)
+val.steps <- floor((260 - 201 - lookback) / batch.size)
 
 # How many steps to draw from test.gen in order to see the entire test set
-test.steps <- floor((nrow(data) - 301 - lookback) / batch.size)
+test.steps <- floor((320 - 261 - lookback) / batch.size)
 
 
 
 ####################################################
 # Before jumping in, let's try a common-sense approach.
 # To confirm that our machine learning method is effective, we'll
-# compare it against the climate norm method.
+# compare it against a "lookahead 1 year" method.
 
 evaluate.naive.method <- function() {
   batch.maes <- c()
   for (step in 1:val.steps) {
     c(samples, targets) %<-% val.gen()
-    preds <- samples[,dim(samples)[[2]],2]
+    preds <- samples[,dim(samples)[[2]],1]
     mae <- mean(abs(preds - targets))
     batch.maes <- c(batch.maes, mae)
   }
@@ -374,3 +374,26 @@ evaluate.naive.method <- function() {
 }
 
 evaluate.naive.method()
+
+
+################################################################################
+# Time to try a simple lSTM!
+
+
+model <- keras_model_sequential() %>% 
+  layer_flatten(input_shape = c(lookback, 3)) %>% 
+  layer_dense(units = 32, activation = "relu") %>% 
+  layer_dense(units = 1)
+
+model %>% compile(
+  optimizer = optimizer_rmsprop(),
+  loss = "mae"
+)
+
+history <- model %>% fit_generator(
+  train.gen,
+  steps_per_epoch = 500,
+  epochs = 100,
+  validation_data = va._gen,
+  validation_steps = val.steps
+)
