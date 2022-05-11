@@ -37,8 +37,7 @@ train <- train[order(train$forecast_target),]
 
 data.all.predictions <- train %>%
   select(c(fcst_tmp_k, obs_tmp_k, forecast_target, lead, fcst_cell)) %>%
-  filter(lead == 1,
-         fcst_cell == 259627) %>%
+  filter(fcst_cell == 259627) %>%
   mutate(value = fcst_tmp_k - obs_tmp_k,
          index = as_date(forecast_target)) %>%
   select(c(value, index)) %>%
@@ -48,4 +47,5 @@ train.months <- length(unique(data$index)) # 335
 ############################################################################
 # We haven't done any evaluation on the multiple predictions made
 # each month. It's time to figure out how to deal with this data.
-
+data <- data.all.predictions[1+24*(0:325),]
+data %>% tail(10)

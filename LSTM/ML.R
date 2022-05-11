@@ -45,7 +45,7 @@ train %>% head(10)
 #test <- readRDS("./data/test_vermont_2022-04-11_21-01-43.RDS")
 
 train <- train[order(train$forecast_target),]
-print("ordered")
+
 #test <- test[order(test$forecast_target),]
 
 data.all.predictions <- train %>%
