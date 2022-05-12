@@ -45,7 +45,7 @@ train %>% head(10)
 #test <- readRDS("./data/test_vermont_2022-04-11_21-01-43.RDS")
 
 train <- train[order(train$forecast_target),]
-print("ordered")
+
 #test <- test[order(test$forecast_target),]
 
 data.all.predictions <- train %>%
@@ -165,7 +165,7 @@ optimal_lag_setting # 47
 # Let's create a cross validation plan by offsetting the window
 # used to select sequential sub-samples. We're essentially dealing
 # with the fact that there's no future test data available by creating
-# multiple synthetic "fututures"--this process is called "backtesting"
+# multiple synthetic "futures"--this process is called "backtesting"
 # We'll use a procedure that uses the rolling_origin() function
 
 
