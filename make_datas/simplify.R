@@ -66,7 +66,7 @@ library(rstudioapi)
 
 #set working directory to location of make_data_dev.R
 data <- readRDS("/Users/tomgause/Desktop/iScience_data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
-data %>% head(1)
+data %>% head(10)
 data <- data %>%
   select(forecast_target,
          fcst_cell,
@@ -80,7 +80,7 @@ data <- data %>%
          obs_tmp_k,
          #fcst_qm_pr_m_day,
          #fcst_qm_tmp_k,
-         forecast_timestamp_rm,
+         forecast_timestamp,
          bias.t,
          bias.p,
          elevation)
@@ -89,5 +89,11 @@ data <- data %>%
   rename(
     forecast_timestamp = forecast_timestamp_rm,
   )
+
+data %>%
+  group_by(forecast_timestamp) %>%
+  
+
+
 
 saveRDS(data, "/Users/tomgause/Desktop/iScience_data/VT_train.RDS")
