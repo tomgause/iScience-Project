@@ -373,7 +373,7 @@ val.steps <- floor((300 - 241 - lookback) / batch.size)
 test.steps <- floor((150 - 1 - lookback) / batch.size)
 
 
-
+########################################################################
 ####################################################
 # Before jumping in, let's try a common-sense approach.
 # To confirm that our machine learning method is effective, we'll
@@ -393,35 +393,42 @@ evaluate.naive.method <- function() {
 evaluate.naive.method()
 
 
-
-
+########################################################################
 ################################################################################
 # Let's try a GRU model!
 
-model <- keras_model_sequential() %>% 
+model1 <- keras_model_sequential() %>% 
   layer_gru(units = 32, input_shape = list(NULL, 3)) %>% 
   layer_dense(units = 1)
 
-model %>% compile(
-  optimizer = optimizer_rmsprop(),
-  loss = "mae"
+model1 %>% compile(
+  optimizer = optimizer_adam(),
+  loss = "mse"
 )
 
-model %>% fit (
+# Create checkpoint callback
+cp_callback1 <- callback_model_checkpoint(
+  filepath = "/storage/tgause/iScience_tom/iScience_Project/LSTM/checkpoints/model1",
+  save_weights_only = TRUE,
+  verbose = 0
+)
+
+history1 <- model1 %>% fit (
   train.gen,
   verbose=2,
   steps_per_epoch = 241 - lookback,
   epochs = 20,
+  callbacks = list(cp_callback1),  # pass callback to training
   validation_data = val.gen,
   validation_steps = val.steps
 )
 
 # Let's save the weights!
-model %>% save_model_tf("model")
-model %>% save_model_weights_tf("checkpoints/cp.ckpt")
+model1 %>% save_model_tf("./models/model1")
+model1 %>% save_model_weights_tf("./checkpoints/model1/cp.ckpt")
 
 
-
+########################################################################
 ################################################################################
 # Add a dropout
 
@@ -431,25 +438,33 @@ model2 <- keras_model_sequential() %>%
   layer_dense(units = 1)
 
 model2 %>% compile(
-  optimizer = optimizer_rmsprop(),
-  loss = "mae"
+  optimizer = optimizer_adam(),
+  loss = "mse"
 )
 
-model2 %>% fit(
+# Create checkpoint callback
+cp_callback2 <- callback_model_checkpoint(
+  filepath = "/storage/tgause/iScience_tom/iScience_Project/LSTM/checkpoints/model2",
+  save_weights_only = TRUE,
+  verbose = 0
+)
+
+history2 <- model2 %>% fit(
   train.gen,
   verbose=2,
   steps_per_epoch = 241 - lookback,
   epochs = 40,
+  callbacks = list(cp_callback2),  # pass callback to training
   validation_data = val.gen,
   validation_steps = val.steps
 )
 
 # Let's save the weights!
-model %>% save_model_tf("model2")
-model %>% save_model_weights_tf("checkpoints/cp2.ckpt")
+model2 %>% save_model_tf("./models/model2")
+model2 %>% save_model_weights_tf("./checkpoints/model2/cp.ckpt")
 
 
-
+########################################################################
 ################################################################################
 # Next, let's try stacking layers
 
@@ -465,41 +480,66 @@ model3 <- keras_model_sequential() %>%
   layer_dense(units = 1)
 
 model3 %>% compile(
-  optimizer = optimizer_rmsprop(),
-  loss = "mae"
+  optimizer = optimizer_adam(),
+  loss = "mse"
 )
 
-model3 %>% fit(
+# Create checkpoint callback
+cp_callback3 <- callback_model_checkpoint(
+  filepath = "/storage/tgause/iScience_tom/iScience_Project/LSTM/checkpoints/model3",
+  save_weights_only = TRUE,
+  verbose = 0
+)
+
+history3 <- model3 %>% fit(
   train.gen,
   verbose=2,
   steps_per_epoch = 241 - lookback,
   epochs = 40,
+  callbacks = list(cp_callback3),  # pass callback to training
   validation_data = val.gen,
   validation_steps = val.steps
 )
 
 # Let's save the weights!
-model2 %>% save_model_tf("model3")
-model2 %>% save_model_weights_tf("checkpoints/cp3.ckpt")
+model3 %>% save_model_tf("./models/model3")
+model3 %>% save_model_weights_tf("./checkpoints/model3/cp.ckpt")
 
-# Get a brief summary of the 3 architectures...
-summary(model)
+
+########################################################################
+########################################################################
+# Get a brief summary of the 4 architectures...
+
+summary(model1)
+plot(history1, main = "GRU")
 summary(model2)
+plot(history2, main = "GRU Dropout")
 summary(model3)
+plot(history3, main = "GRU Sequential")
+
 
 # and EVALUATE!!
 
-model %>% evaluate(
+model1 %>% evaluate(
     test.gen,
-    verbose=0
+    verbose=1,
+    steps = test.steps
 )
 model2 %>% evaluate(
     test.gen,
-    verbose=0
+    verbose=1,
+    steps = test.steps
 )
 model3 %>% evaluate(
     test.gen,
-    verbose=0
+    verbose=1,
+    steps = test.steps
 )
 
+pred1 <- model1 %>% predict(test.gen)
+pred2 <- model2 %>% predict(test.gen)
+pred3 <- model3 %>% predict(test.gen)
 
+saveRDS(pred1, filename="./predictions/pred1")
+saveRDS(pred1, filename="./predictions/pred2")
+saveRDS(pred1, filename="./predictions/pred3")

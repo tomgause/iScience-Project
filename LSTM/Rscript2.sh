@@ -3,7 +3,7 @@
 #SBATCH --output=LSTM-%j.out 
 #SBATCH --partition=standard 
 #SBATCH --mem=50G
-#SBATCH --time=02:00:00
+#SBATCH --time=00:10:00
 
 # print SLURM envirionment variables
 echo "Job ID: ${SLURM_JOB_ID}"

@@ -50,3 +50,31 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
+LSTM/checkpoints/checkpoint
+LSTM/checkpoints/model1.data-00000-of-00001
+LSTM/checkpoints/model1.index
+LSTM/checkpoints/model2.data-00000-of-00001
+LSTM/checkpoints/model2.index
+LSTM/checkpoints/model3.data-00000-of-00001
+LSTM/checkpoints/model3.index
+LSTM/checkpoints/model1/checkpoint
+LSTM/checkpoints/model1/cp.ckpt.data-00000-of-00001
+LSTM/checkpoints/model1/cp.ckpt.index
+LSTM/checkpoints/model2/checkpoint
+LSTM/checkpoints/model2/cp.ckpt.data-00000-of-00001
+LSTM/checkpoints/model2/cp.ckpt.index
+LSTM/checkpoints/model3/checkpoint
+LSTM/checkpoints/model3/cp.ckpt.data-00000-of-00001
+LSTM/checkpoints/model3/cp.ckpt.index
+LSTM/models/model1/keras_metadata.pb
+LSTM/models/model1/saved_model.pb
+LSTM/models/model1/variables/variables.data-00000-of-00001
+LSTM/models/model1/variables/variables.index
+LSTM/models/model2/keras_metadata.pb
+LSTM/models/model2/saved_model.pb
+LSTM/models/model2/variables/variables.data-00000-of-00001
+LSTM/models/model2/variables/variables.index
+LSTM/models/model3/keras_metadata.pb
+LSTM/models/model3/saved_model.pb
+LSTM/models/model3/variables/variables.data-00000-of-00001
+LSTM/models/model3/variables/variables.index
