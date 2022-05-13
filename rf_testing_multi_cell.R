@@ -89,45 +89,6 @@ cell.error <- cell.error%>%
   mutate(y = sample.cells$y)
 colnames(cell.error)[1:4] <- c("Quantile Matching","Base","Climate Norm","RF All Pixels")
 
-mean.errors <- data.frame(colMeans(cell.error[,1:4]))
-mean.errors <- mean.errors %>%
-  mutate(bias.correction.method = rownames(mean.errors))
-colnames(mean.errors)[1] = "MSE"
-mean.errors$MSE <- round(mean.errors$MSE,3)
-
-mean.errors.noclimatenorm <- mean.errors%>%
-  filter(bias.correction.method != "Climate Norm")
-
-#generate plot
-mean.errors %>%
-  ggplot(mapping = aes(x = bias.correction.method, y = MSE, label = MSE))+
-  geom_bar(stat = 'identity',fill="#b4eeb4",color = "#b4eeb4")+
-  geom_text(size = 6)+
-  xlab("Bias Correction Method")+
-  theme_test()+
-  ggtitle("MSE for Various Bias Correction Methods, \n Tested on 2014-2021 Data")+
-  theme(plot.title = element_text(hjust = 0.5, size = 18), axis.text = element_text(size = 15), axis.title.x = element_text(size = 15), axis.title.y = element_text(size = 15))
-
-#create plot of MSE for Vermont
-cell.error.pivoted <- cell.error%>%
-  pivot_longer(cols = c("Quantile Matching","Base","Climate Norm","RF All Pixels"),
-               names_to = c("bias_correction_technique"),
-               values_to = c("MSE"))
-
-cell.error.pivoted%>%
-  ggplot(mapping = aes(x = x, y = y, color = MSE))+
-  geom_point(size = 6)+
-  theme_test()+
-  ggtitle("MSE for Various Bias Correction Methods, \n Tested on 2014-2021 Data")+
-  theme(plot.title = element_text(hjust = 0.5, size = 18), 
-        axis.text = element_text(size = 15), 
-        axis.title.x = element_text(size = 15), 
-        axis.title.y = element_text(size = 15))+
-  scale_color_viridis()+
-  facet_wrap(~bias_correction_technique)
-
-
-
 # Save results of testing
 # First, grab and format the current time
 currentTime <- Sys.time()
@@ -140,4 +101,3 @@ filename_meanerrors <- paste0("./data/", "mean_errors_test_results_", currentTim
 # And save!
 saveRDS(cell.error, file = filename_cellerrors)
 saveRDS(mean.errors, file = filename_meanerrors)
-
