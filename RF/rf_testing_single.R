@@ -29,7 +29,7 @@ setwd(dirname(getActiveDocumentContext()$path))
 
 # Load in our RFs and our test data; and train data for climate norm calculations
 #to do: check to see that loading in RF works
-rf.all <- final.rf # this doesn't work: load("finalVTrf.allpixels.RData")
+#rf.all <- final.rf # this doesn't work: load("finalVTrf.allpixels.RData")
 train <- readRDS("./data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
 test <- readRDS("./data/test_subset_2022-04-18_10-27-26.RDS")
 
@@ -132,9 +132,18 @@ for (cell in sample.cells[,1]) {
   #climate.norm method 2
   climate.norm.mse <- mean((climate.norm.preds$obs_tmp_k - 
                               climate.norm.preds$mean_temp)^2)
+
+  rf <- ranger(bias.t ~ ., # More efficient
+               data = cell.data,
+               num.trees = 2000, # Adjust this later
+               mtry = 15, 
+               min.node.size = 3,
+               sample.fraction = 1,
+               num.threads = 8, # 20 threads on Alex machine
+               oob.error = TRUE)
   
   # Generate predictions to find rf mse against obs
-  pred <- predict(rf.all, data = cell.data)
+  pred <- predict(rf, data = cell.data)
   rf.temp.predictions <- cell.data$obs_tmp_k - pred$predictions
   rf.mse <- mean((cell.data$obs_tmp_k - rf.temp.predictions)^2)
   

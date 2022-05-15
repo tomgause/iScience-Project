@@ -34,9 +34,10 @@ setwd("/storage/tgause/iScience_tom/iScience_Project/LSTM")
 # Make all the data
 #train <- readRDS("/Users/tomgause/Desktop/iScience_tom/iScience_Project/data/VT_train.RDS")
 #test <- readRDS("/Users/tomgause/Desktop/iScience_tom/iScience_Project/data/VT_test.RDS")
-#train <- readRDS("C:/Users/tgause/iScience_Project/data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
-train <- readRDS("/storage/tgause/iScience_tom/iScience_Project/data/VT_train.RDS")
-test <- readRDS("/storage/tgause/iScience_tom/iScience_Project/data/VT_test.RDS")
+train <- readRDS("C:/Users/tgause/iScience_Project/data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
+test <- readRDS("C:/Users/tgause/iScience_Project/data/test_subset_2022-05-09_19-15-23.RDS")
+#train <- readRDS("/storage/tgause/iScience_tom/iScience_Project/data/VT_train.RDS")
+#test <- readRDS("/storage/tgause/iScience_tom/iScience_Project/data/VT_test.RDS")
 
 train <- train[order(train$forecast_target),]
 test <- test[order(test$forecast_target),]
@@ -408,7 +409,8 @@ model1 %>% compile(
 
 # Create checkpoint callback
 cp_callback1 <- callback_model_checkpoint(
-  filepath = "/storage/tgause/iScience_tom/iScience_Project/LSTM/checkpoints/model1",
+  filepath = "C:/Users/tgause/Desktop/checkpoints/model1",
+    #"/storage/tgause/iScience_tom/iScience_Project/LSTM/checkpoints/model1",
   save_weights_only = TRUE,
   verbose = 0
 )
@@ -424,8 +426,9 @@ history1 <- model1 %>% fit (
 )
 
 # Let's save the weights!
-model1 %>% save_model_tf("./models/model1")
-model1 %>% save_model_weights_tf("./checkpoints/model1/cp.ckpt")
+model1 %>% save_model_tf("C:/Users/tgause/Desktop/models/model1")
+  #"./models/model1")
+#model1 %>% save_model_weights_tf("./checkpoints/model1/cp.ckpt")
 
 
 ########################################################################
@@ -444,7 +447,8 @@ model2 %>% compile(
 
 # Create checkpoint callback
 cp_callback2 <- callback_model_checkpoint(
-  filepath = "/storage/tgause/iScience_tom/iScience_Project/LSTM/checkpoints/model2",
+  filepath = "C:/Users/tgause/Desktop/checkpoints/model2",
+    #"/storage/tgause/iScience_tom/iScience_Project/LSTM/checkpoints/model2",
   save_weights_only = TRUE,
   verbose = 0
 )
@@ -460,8 +464,9 @@ history2 <- model2 %>% fit(
 )
 
 # Let's save the weights!
-model2 %>% save_model_tf("./models/model2")
-model2 %>% save_model_weights_tf("./checkpoints/model2/cp.ckpt")
+model2 %>% save_model_tf("C:/Users/tgause/Desktop/models/model2")
+  #"./models/model2")
+#model2 %>% save_model_weights_tf("./checkpoints/model2/cp.ckpt")
 
 
 ########################################################################
@@ -486,7 +491,8 @@ model3 %>% compile(
 
 # Create checkpoint callback
 cp_callback3 <- callback_model_checkpoint(
-  filepath = "/storage/tgause/iScience_tom/iScience_Project/LSTM/checkpoints/model3",
+  filepath = "C:/Users/tgause/Desktop/checkpoints/model3",
+    #"/storage/tgause/iScience_tom/iScience_Project/LSTM/checkpoints/model3",
   save_weights_only = TRUE,
   verbose = 0
 )
@@ -502,8 +508,9 @@ history3 <- model3 %>% fit(
 )
 
 # Let's save the weights!
-model3 %>% save_model_tf("./models/model3")
-model3 %>% save_model_weights_tf("./checkpoints/model3/cp.ckpt")
+model3 %>% save_model_tf("C:/Users/tgause/Desktop/models/model3")
+  #"./models/model3")
+#model3 %>% save_model_weights_tf("./checkpoints/model3/cp.ckpt")
 
 
 ########################################################################
@@ -540,6 +547,6 @@ pred1 <- model1 %>% predict(test.gen)
 pred2 <- model2 %>% predict(test.gen)
 pred3 <- model3 %>% predict(test.gen)
 
-saveRDS(pred1, filename="./predictions/pred1")
+saveRDS(pred1, filename="C:/Users/tgause/Desktop/checkpoints/model1")
 saveRDS(pred1, filename="./predictions/pred2")
 saveRDS(pred1, filename="./predictions/pred3")
