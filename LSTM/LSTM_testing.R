@@ -37,13 +37,13 @@ test <- test[order(test$forecast_target),]
 gc()
 test.all.predictions <- test %>%
   select(c(fcst_tmp_k, obs_tmp_k, forecast_target, lead, fcst_cell, fcst_qm_tmp_k)) %>%
-  mutate(base = fcst_tmp_k - obs_tmp_k,
-         qm = fcst_qm_tmp_k - obs_tmp_k) %>%
+  mutate(bias = fcst_tmp_k - obs_tmp_k,
+         qm_bias = fcst_qm_tmp_k - obs_tmp_k) %>%
   dplyr::group_by(forecast_target, fcst_cell, lead) %>%
-  mutate(base = mean(base),
-         qm = mean(qm)) %>%
+  mutate(bias = mean(bias),
+         qm_bias = mean(qm_bias)) %>%
   dplyr::ungroup() %>%
-  select(c(base, qm, forecast_target, fcst_cell, lead))
+  select(c(bias, qm_bias, forecast_target))
 test.months <- length(unique(test.all.predictions$forecast_target))
 
 # We have 24x duplicate data for each lead-cell-index.
@@ -51,15 +51,22 @@ test.months <- length(unique(test.all.predictions$forecast_target))
 test <- test.all.predictions %>% unique()
 test %>% head(2)
 
-max.test <- max(test$base)
-min.test <- min(test$base)
+max.test <- max(test$bias)
+min.test <- min(test$bias)
 test.scaled <- test %>%
-  mutate(base = ((base - min.test)/(max.test - min.test))^2,
-         qm = ((qm - min.test)/(max.test - min.test))^2)
+  mutate(bias = (bias - min.test)/(max.test - min.test),
+         qm_bias = (qm_bias - min.test)/(max.test - min.test))
+
+error <- test.scaled %>%
+       mutate(RNN_error = (bias - 0.3916679)^2,
+              qm_error = (bias - qm_bias)^2,
+              bias = bias^2) %>%
+       select(RNN_error, qm_error, bias)
 
 print("BASE:")
-print(mean(test.scaled$base))
+print(mean(error$bias))
 print("QM:")
-print(mean(test.scaled$qm))
+print(mean(error$qm_error))
 print("BEST MODEL:")
+print(mean(error$RNN_error))
 print(0.0142196)
