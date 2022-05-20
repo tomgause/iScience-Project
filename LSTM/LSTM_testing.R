@@ -59,7 +59,7 @@ test.scaled <- test %>%
 
 error <- test.scaled %>%
        mutate(RNN_error = (bias - 0.3916679)^2,
-              qm_error = (bias - qm_bias)^2,
+              qm_error = (qm_bias)^2,
               bias = bias^2) %>%
        select(RNN_error, qm_error, bias)
 
@@ -69,4 +69,3 @@ print("QM:")
 print(mean(error$qm_error))
 print("BEST MODEL:")
 print(mean(error$RNN_error))
-print(0.0142196)

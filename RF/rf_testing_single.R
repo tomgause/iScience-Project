@@ -65,10 +65,15 @@ for (cell in sample.cells[,1]) {
   
   # Generate predictions to find rf mse against obs
   pred <- predict(rf.cell, data = cell.test.data)
+<<<<<<< HEAD
   rf.bias.predictions <- cell.test.data$bias.t - pred$predictions
   rf.mse <- mean((cell.test.data$bias.t - rf.bias.predictions)^2)
   x <- cell.train.data[1,]$x
   y <- cell.train.data[1,]$y
+=======
+  rf.bias.predictions <- fcst_tmp_k + pred$predictions
+  rf.mse <- mean((cell.test.data$obs_tmp_k - rf.bias.predictions)^2)
+>>>>>>> 70325dbef40bd9b33dc7a763361b3b396c7d5a5d
   
   cell.error <- rbind(cell.error, data.frame(qm.mse,
                                              base.mse,
