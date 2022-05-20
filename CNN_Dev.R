@@ -8,44 +8,35 @@ library(keras)
 library(tidyverse)
 
 #Load Train Data
-new_x_train <- readRDS(file.choose())
-new_y_train <- readRDS(file.choose())
+new_x_train <- readRDS("x_train.RDS")
+new_y_train <- readRDS("y_train.RDS")
 
 #Load Test Data
-new_x_test <- readRDS(file.choose())
-new_y_test <- readRDS(file.choose())
+new_x_test <- readRDS("x_test.RDS")
+new_y_test <- readRDS("y_test.RDS")
 
 #Set Parameters 
 new_img_rows <- 10
 new_img_cols <- 10
 new_input_shape <- c(10, 10, 5)
-
+batch_size <- 200
+epochs <-7
 # Define model
 build_model <- function(input_shape,batch_size,epochs){
   model <- keras_model_sequential() %>%
     layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'tanh',
                   input_shape = new_input_shape, padding = "same") %>%
     layer_max_pooling_2d(pool_size = c(2,2))%>%
-    #layer_dropout(rate = 0.5) %>% 
     layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'tanh') %>%
     layer_upsampling_2d(size = c(4,4))%>%
     layer_dropout(rate = 0.5) %>% 
     layer_conv_2d(filters = 1, kernel_size = c(3,3), activation = 'linear')
   
-  #Layer Notes
-  #filter = number of filters used -> number of resultant feature maps
-  #kernel_size = how large each filter is
-  # downsampling = max pooling = decreases dimensions
-  # upsampling = increases dimensions
-  # pool size: factor to which downsize input data
-  # prevent overfitting
-  #layer_dropout #prevent overfitting
-  #layer_flatten #turns cube into list
-  
+
   # Compile model
   model %>% compile(
     loss = "mse",
-    optimizer = optimizer_adam(), #how to choose?
+    optimizer = optimizer_adam(),
     metrics = c('mse')
   )
   
@@ -58,19 +49,23 @@ build_model <- function(input_shape,batch_size,epochs){
   )
 }
 
+##predict on test data  
+model.prediction <- model %>% predict(new_x_test)
 
-build_model(input_shape = new_input_shape,batch_size = 64,epochs = 12) #min ~0.36?
-build_model(input_shape = new_input_shape,batch_size = 200,epochs = 12)# pretty good 
-build_model(input_shape = new_input_shape,batch_size = 200,epochs = 20)#CNN-3 - mse min
-build_model(input_shape = new_input_shape,batch_size = 100,epochs = 12)# this batch size is not very good
-build_model(input_shape = new_input_shape,batch_size = 150,epochs = 12)# this batch size not as good as 200
 
-model<-build_model(input_shape = new_input_shape,batch_size = 200,epochs = 7)
+##Turn the array back to a data frame
+CNN.prediction.dataframe <- as.data.frame.table(model.prediction)
+y_test_dataframe <- as.data.frame.table(new_y_test)
+
+
+#build_model(input_shape = new_input_shape,batch_size = 64,epochs = 12) #min ~0.36?
+#build_model(input_shape = new_input_shape,batch_size = 200,epochs = 12)# pretty good 
+#build_model(input_shape = new_input_shape,batch_size = 200,epochs = 20)#CNN-3 - mse min
+#build_model(input_shape = new_input_shape,batch_size = 100,epochs = 12)# this batch size is not very good
+#build_model(input_shape = new_input_shape,batch_size = 150,epochs = 12)# this batch size not as good as 200
+
+build_model(input_shape = new_input_shape,batch_size = 200,epochs = 7)
 ##It seems like epoch 9 is pretty optimal) 
-
-
-
-
 
 
 
