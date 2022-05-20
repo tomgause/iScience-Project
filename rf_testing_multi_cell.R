@@ -1,6 +1,6 @@
 ### rf_testing_multi_cell
 # Tom Gause, Acadia Hegedus, and Katelyn Mei
-# 5/12/2022
+# 5/20/2022
 
 library(data.table)
 library(rvest)
@@ -31,7 +31,8 @@ setwd(dirname(getActiveDocumentContext()$path))
 #to do: check to see that loading in RF works
 load("finalVTrf.allpixels.RData") #called final.rf
 train <- readRDS("./data/train_subset_Vermont_2022-04-16_14-55-49.RDS")
-test <- readRDS("./data/test_subset_2022-04-18_10-27-26.RDS")
+test <- readRDS("./data/test_subset_2022-05-09_19-15-23.RDS")
+test.data <- test
 
 # Generate Climate Norm
 # Mean of historic observed temperatures for each month
@@ -42,62 +43,48 @@ climate.norm2 <- train%>%
 
 climate.norm2 <- climate.norm2%>%
   group_by(fcst_cell, target_month)%>%
-  summarize(mean_temp = mean(obs_tmp_k))
+  summarize(fcst_climate_norm = mean(obs_tmp_k))
 
-# Select and store all forecast cells
-sample.cells <- test %>%
-  dplyr::select(fcst_cell,x,y) %>%
-  unique()
+test.data <- left_join(test.data, climate.norm2, 
+                       by = c("fcst_cell", "target_month"))
 
-# Create DF to store mse from RF, quantile matching, and base
-cell.error <- data.frame(0,0,0,0)
-colnames(cell.error) <- c("qm.mse", "base.mse",
-                          "climate.norm.mse","rf.mse")
+# Generate mse for qm, base, and climate.norm against obs
+test.data <- test.data%>%
+  mutate(qm.se = (test.data$obs_tmp_k - test.data$fcst_qm_tmp_k)^2)%>%
+  mutate(base.se = (test.data$obs_tmp_k - test.data$fcst_tmp_k)^2)%>%
+  mutate(climate.norm.se = (test.data$obs_tmp_k - test.data$fcst_climate_norm)^2)  
 
-for (cell in sample.cells[,1]) {
-  # Select a single point
-  cell.data <- test %>%
-    filter(fcst_cell == cell)
-  
-  #climate norm method 2
-  climate.norm.cell <- climate.norm2%>%
-    filter(fcst_cell == cell)
-  climate.norm.preds <- left_join(cell.data, climate.norm.cell, 
-                                  by = c("fcst_cell", "target_month"))
-  
-  # Generate mse for qm, base, and climate.norm against obs
-  qm.mse <- mean((cell.data$obs_tmp_k - cell.data$fcst_qm_tmp_k)^2)
-  base.mse <- mean((cell.data$obs_tmp_k - cell.data$fcst_tmp_k)^2)
-  
-  #climate.norm method 2
-  climate.norm.mse <- mean((climate.norm.preds$obs_tmp_k - 
-                              climate.norm.preds$mean_temp)^2)
-  
-  # Generate predictions to find rf mse against obs
-  pred <- predict(final.rf, data = cell.data)
-  rf.temp.predictions <- cell.data$obs_tmp_k - pred$predictions
-  rf.mse <- mean((cell.data$obs_tmp_k - rf.temp.predictions)^2)
-  
-  cell.error <- rbind(cell.error, data.frame(qm.mse,base.mse,
-                                             climate.norm.mse,
-                                             rf.mse))
-}
+# Generate predictions to find rf mse against obs
+rf.bias.pred <- predict(final.rf, data = test.data)
+test.data <- test.data%>%
+  mutate(fcst_rf_tmp = test.data$fcst_tmp_k + rf.bias.pred$predictions) #calculate new bias-corrected forecast value
 
-cell.error <- cell.error[2:nrow(cell.error),] #remove 0 row
-cell.error <- cell.error%>%
-  mutate(x = sample.cells$x)%>%
-  mutate(y = sample.cells$y)
-colnames(cell.error)[1:4] <- c("Quantile Matching","Base","Climate Norm","RF All Pixels")
+test.data <- test.data%>%
+  mutate(rf.se = (test.data$obs_tmp_k - test.data$fcst_rf_tmp)^2)
+
+mean.errors <- test.data%>%
+  summarize(qm.mse = mean(qm.se),
+            climate.mse = mean(climate.norm.se),
+            base.mse = mean(base.se),
+            rf.mse = mean(rf.se))
+
+cell.errors <- test.data%>%
+  group_by(x,y)%>%
+  summarize(qm.mse = mean(qm.se),
+            climate.mse = mean(climate.norm.se),
+            base.mse = mean(base.se),
+            rf.mse = mean(rf.se))
+
 
 # Save results of testing
 # First, grab and format the current time
 currentTime <- Sys.time()
 currentTime <- gsub(" ", "_", currentTime)
 currentTime <- gsub(":", "-", currentTime)
-filename_cellerrors <- paste0("./data/", "cell_errors_test_results_", currentTime, ".RDS")
-filename_meanerrors <- paste0("./data/", "mean_errors_test_results_", currentTime, ".RDS")
+filename_cellerrors <- paste0("./data/", "FINAL_cell_errors_test_results_", currentTime, ".RDS")
+filename_meanerrors <- paste0("./data/", "FINAL_mean_errors_test_results_", currentTime, ".RDS")
 
 
 # And save!
-saveRDS(cell.error, file = filename_cellerrors)
+saveRDS(cell.errors, file = filename_cellerrors)
 saveRDS(mean.errors, file = filename_meanerrors)
