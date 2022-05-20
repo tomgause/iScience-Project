@@ -3,8 +3,8 @@
 #SBATCH --output=RF-%j.out 
 #SBATCH --partition=standard
 #SBATCH --mem=64G
-#SBATCH --cpus-per-task=36 
-#SBATCH --time=04:00:00
+#SBATCH --cpus-per-task=36
+#SBATCH --time=01:00:00
 
 # print SLURM envirionment variables
 echo "Job ID: ${SLURM_JOB_ID}"

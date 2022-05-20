@@ -53,7 +53,7 @@ for (cell in sample.cells[,1]) {
   # Generate mse for qm, base, and climate.norm against obs
   qm.mse <- mean((cell.test.data$obs_tmp_k - cell.test.data$fcst_qm_tmp_k)^2)
   base.mse <- mean((cell.test.data$obs_tmp_k - cell.test.data$fcst_tmp_k)^2)
-\
+
   rf.cell <- ranger(bias.t ~ ., # More efficient
                data = cell.train.data,
                num.trees = 2000,
@@ -67,12 +67,14 @@ for (cell in sample.cells[,1]) {
   pred <- predict(rf.cell, data = cell.test.data)
   rf.bias.predictions <- cell.test.data$bias.t - pred$predictions
   rf.mse <- mean((cell.test.data$bias.t - rf.bias.predictions)^2)
+  x <- cell.train.data[1,]$x
+  y <- cell.train.data[1,]$y
   
   cell.error <- rbind(cell.error, data.frame(qm.mse,
                                              base.mse,
                                              rf.mse,
-                                             cell.train.data[1,]$x,
-                                             cell.train.data[1,]$y))
+                                             x,
+                                             y))
   
   # Method for cycling through RFs
   #rf.identifier <- rf.identifier + 1
