@@ -65,8 +65,8 @@ for (cell in sample.cells[,1]) {
   
   # Generate predictions to find rf mse against obs
   pred <- predict(rf.cell, data = cell.test.data)
-  rf.bias.predictions <- cell.test.data$bias.t - pred$predictions
-  rf.mse <- mean((cell.test.data$bias.t - rf.bias.predictions)^2)
+  rf.bias.predictions <- fcst_tmp_k + pred$predictions
+  rf.mse <- mean((cell.test.data$obs_tmp_k - rf.bias.predictions)^2)
   
   cell.error <- rbind(cell.error, data.frame(qm.mse,
                                              base.mse,
