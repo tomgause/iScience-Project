@@ -30,7 +30,7 @@ cell.error.pivoted%>%
   ggplot(mapping = aes(x = x, y = y, color = MSE))+
   geom_point(size = 6)+
   theme_test()+
-  ggtitle("MSE for Various Bias Correction Methods, \n Tested on 2014-2021 Data")+
+  ggtitle("MSE for Various Bias Correction Methods, \n Tested on 2013-2021 Data")+
   theme(plot.title = element_text(hjust = 0.5, size = 18), 
         axis.text = element_text(size = 15), 
         axis.title.x = element_text(size = 15), 
@@ -60,7 +60,7 @@ mean.errors %>%
   geom_text(size = 6)+
   xlab("Bias Correction Method")+
   theme_test()+
-  ggtitle("MSE for Various Bias Correction Methods, \n Tested on 2014-2021 Data")+
+  ggtitle("MSE for Various Bias Correction Methods, \n Tested on 2013-2021 Data")+
   theme(plot.title = element_text(hjust = 0.5, size = 18), axis.text = element_text(size = 15), axis.title.x = element_text(size = 15), axis.title.y = element_text(size = 15))
 
 
