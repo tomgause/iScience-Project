@@ -20,9 +20,9 @@
 - **make_data_slice**
 - **make_data_with_state** is similar to _make_train_data_, but you can filter cells by state (rather than random sampling).
 - **make_test_data** is similar to _make_train_, but requires a **train** data slice, and generates a similar slice from the _test_ data.
-- **made_test_data_CNN** will generate a 10 x 10 pixel testing subset of US data (includes Vermont)
+- **make_test_data_CNN** will generate a 10 x 10 pixel testing subset of US data (includes Vermont)
 - **make_train_data** will clean, subset, and store a data slice from the _old_ data. No fancy formatting, you'll have to dig into the code...
-- **made_train_data_CNN_vermont** will generate a 10 x 10 pixel training subset of US data (includes Vermont)
+- **made_train_data_CNN** will generate a 10 x 10 pixel training subset of US data (includes Vermont)
 - **ML** contains ACF and LSTM resources.
 - **PCA** conducts a principal components analysis and visualizes results for training + testing data
 - **process_data_CNN** shapes train and test data to be the correct input shape for CNN
