@@ -1,7 +1,7 @@
 # Nudging NOAA: Seasonal Forecast Bias Correction with Machine Learning
 
-##### Helpful commands:
--
+##### See Report Here:
+- [Nudging NOAA](https://docs.google.com/document/d/1EQYS9a92o_H8SWqo3ZeKzIO5GPIPB85m-1EedT7EO0o/edit?usp=sharing)
 
 ##### Sub-directories:
 - **./data** contains .tif for elevation data. curl and extract data from 1982-2010 into **./data/old** and 2012-2020 into **./data/new**
